@@ -2,7 +2,8 @@ nptools: a bunch of python scripts that automate repetitive activities on the po
 
 dependencies: python2, bash, a whole bunch of python libraries including curl and sqlite3
 
-features: playing the slots, doing the dailies (most of them), and maybe eventually one day the whole process of 
-restocking -- all from command line.
+features: playing the slots, doing dailies (most of them), and maybe eventually one day the whole process of restocking -- all from command line.
 
-Also hi TNT, part of Nickelodeon, part of MTV Networks, part of Viacom!
+Plus, it's open source, unlike those Visual Basic GUI interfaces that track the item's NP while doing a clandestine installation of Smiley Central on the cheater's computer.
+
+Also hi TNT of Nickelodeon of MTV of Viacom!
