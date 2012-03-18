@@ -1,9 +1,47 @@
-nptools: a bunch of python scripts that automate repetitive activities on the popular virtual pet site Neopets.
+--- Intro ---
+nptools is a bunch of python and bash scripts that automate repetitive activities on the popular virtual pet site Neopets.
 
-dependencies: python2, bash, a whole bunch of python libraries including curl and sqlite3
+--- Dependencies ---
+python2, bash, a whole bunch of python libraries including curl and sqlite3
 
+--- Features ---
 features: playing the slots, doing dailies (most of them), and maybe eventually one day the whole process of restocking -- all from command line.
 
 Plus, it's open source, unlike those Visual Basic GUI interfaces that track the item's NP while doing a clandestine installation of Smiley Central on the cheater's computer.
 
+--- Contents ---
+login.sh        - Logs in using 1st argument as username and 2nd argument as password
+                - Stores cookies in kirls
+
+neo.py          - Basic setting-up of curl
+                - Provides some useful functions for use in other scripts
+
+itemdb.py       - Functions to access the item database, which it stores in itemdb
+                - as an sqlite3 database.
+                - Can be populated with wiz.py or scrum.py
+                - Might be able to be used to create an autorestocker one day
+
+bagateller.py   - Plays the game once, printing the result
+coconutter.py   -
+slotplayer.py   - (Pirate slots; Brucey slots suck.)
+
+d_*.py          - Does a certain daily.
+
+dailies.sh      - Does most of the d_*.py scripts
+                - If a d_*.py script isn't in it, then it's probably not complete
+
+hidenseek.py    - Loops the game until it can't anymore (pet boredom, etc.)
+cheeseroller.py -
+dicearooer.py   -
+
+wiz.py          - Searches the shop wizard for the first cmdline argument repeatedly
+                - Usable in faerie quests, since it bypasses the form
+
+scrum.py        - Goes through your SDB, listing the value of the items
+                - as determined by itemdb.py. If the item is not in itemdb,
+                - uses itemdb to add it.
+
+dump.html       - Contains the HTML from the last page requested neo.py
+
+---
 Also hi TNT of Nickelodeon of MTV of Viacom!

@@ -8,7 +8,7 @@ from neo import *
 conn = sqlite3.connect('itemdb')
 s = conn.cursor()
 
-def research(name):
+def research(name, comprensile=5):
     url = "http://www.neopets.com/market.phtml"
     data = "type=process_wizard&feedset=0&shopwizard=" + urllib.quote_plus(name) + "&table=shop&criteria=exact&min_price=0&max_price=99999"
 
@@ -38,10 +38,11 @@ def research(name):
     best_shopper = 'Could not find item.'
     best_price = 999999
 
-    while(secret_shoppers.count('x') > 0 and times < 5 and best_price > 1):
+    while(secret_shoppers.count('x') > 0 and times < comprensile and best_price > 1):
         seed()
         x = content.find("browseshop.phtml")
         shit = content.find("too many searches!")
+        cock = content.find("I did not find anything.")
         if(x > 0):
             o = content.find("<b>", x)+3
             ob = content.find("</b>", o)
@@ -56,9 +57,13 @@ def research(name):
                 print("New best price: " + nps + " at shop of " + owner + " (www.neopets.com/browseshop.phtml?owner=" + owner + ")")
                 best_price = np
                 best_shopper = owner
+        elif(cock > 0):
+            print("Found nothing.")
+        elif(shit > 0):
+            print("Shop wizard banned!")
+            sys.exit()
         else:
             print("Could not access shop wizard!")
-            sys.exit()
         times += 1
         time.sleep(0.7 + random.random())
     

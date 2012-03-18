@@ -16,8 +16,12 @@ while(playing):
         playing = False
     elif(p1 > 0):
         x = content.find("faerie_cave_dead_end.gif", p1)
+        w = content.find("faerie_cave_success.gif", p1)
         if(x > 0):
             print("Dead end!")
+            playing = False
+        elif(w > 0):
+            print("Won!")
             playing = False
         else:
             print("Faerie caverning...")

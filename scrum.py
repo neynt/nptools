@@ -2,6 +2,7 @@
 
 from neo import *
 import itemdb
+import random
 
 for i in range(0, 600, 30):
     c.setopt(c.URL, "http://www.neopets.com/safetydeposit.phtml?offset=" + str(i) + "&obj_name=&category=0")
@@ -17,6 +18,9 @@ for i in range(0, 600, 30):
         wd = content.find("<br>", w)
         name = content[w:wd]
         print(name)
-        worth = itemdb.get_item_worth(name)
-        print("   is worth " + str(worth) + " NP")
-    time.sleep(3)
+        worth = itemdb.query_item_worth(name)
+        if(worth < 0):
+            worth = itemdb.get_item_worth(name)
+            time.sleep(10+random.randint(0, 10))
+        print("   " + str(worth) + " NP")
+    time.sleep(5)
