@@ -21,6 +21,6 @@ for i in range(0, 600, 30):
         worth = itemdb.query_item_worth(name)
         if(worth < 0):
             worth = itemdb.get_item_worth(name)
-            time.sleep(10+random.randint(0, 10))
+            time.sleep(15+random.randint(0, 10))
         print("   " + str(worth) + " NP")
-    time.sleep(5)
+    time.sleep(2)

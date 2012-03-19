@@ -25,5 +25,4 @@ while(True):
             sys.exit()
         else:
             print("Nope.")
-        time.sleep(random.random() + 0.61)
-
+        time.sleep(random.random() + 6.9)
