@@ -15,7 +15,7 @@ c = pycurl.Curl()
 c.setopt(c.WRITEFUNCTION, storage.write)
 c.setopt(c.COOKIEFILE, "kirls")
 c.setopt(c.COOKIEJAR, "kirls")
-c.setopt(c.USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.11 (KHTML, like Gecko) Chrome/17.0.963.56 Safari/535.11")
+c.setopt(c.USERAGENT, "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)")
 
 def dump_content():
     open("dump.html", "w").write(storage.getvalue())
