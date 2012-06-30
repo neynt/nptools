@@ -1,0 +1,10 @@
+npd
+---
+by Neynt
+
+Neopets Daemon is a little app that automatically plays Neopets for you.
+
+Feed it your username and password, and it will automatically do your dailies.
+Eventually, it might even do more. Like buy stocks and play games.
+
+It keeps track of each account in an sqlite3 database, so even if you kill it and start it again, it won't do dailies until the time is right.
