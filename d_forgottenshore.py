@@ -3,9 +3,9 @@
 from neo import *
 
 c.setopt(c.URL, "http://www.neopets.com/pirates/forgottenshore.phtml")
-storage.truncate(0); c.perform(); content = storage.getvalue()
-p1 = content.find("nothing of interest to be found today")
-if(p1 >= 0):
-    print("Nothing at forgotten shore.")
+seed()
+d = content.find("<b>Forgotten Shore</b>")
+if(d > 0):
+    p1 = content.find("nothing of interest to be found today")
 else:
     print("Forgotten shore has something! http://www.neopets.com/pirates/forgottenshore.phtml")
