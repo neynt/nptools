@@ -1,3 +1,5 @@
 *.pyc
 *.pyignore
-npd_cookies
+__pycache__
+pages
+nptools.cookies

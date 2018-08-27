@@ -51,4 +51,4 @@ while(True):
         else:
             print("[%s][%s] %s" % (content[place+38:p2], content[ps1+25:ps2], content[p3+3:p4]))
     
-    time.sleep(1.5+random.random())
+    time.sleep(0.5+0.5*random.random())

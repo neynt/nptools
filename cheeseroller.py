@@ -1,50 +1,58 @@
-#!/usr/bin/python2
+#!/usr/bin/env python3
 
-from neo import *
+import random
+import time
 
-url = "http://www.neopets.com/medieval/cheeseroller.phtml"
-c.setopt(c.URL, url)
-c.setopt(c.REFERER, url)
-seed()
+import lib
 
-ingame = True;
+path = '/medieval/cheeseroller.phtml'
+actions = ['Forward Somersault', 'Push Cheese Faster', 'Hold Cheese Steady', 'Dive Left', 'Dive Right']
+log = open('cheeseroller.log', 'a')
 
-while(True):
-    c.setopt(c.POST, 1)
-    if(ingame):
-        c.setopt(c.POSTFIELDS, "cheese_action=" + str(4));
-    else:
-        c.setopt(c.POSTFIELDS, "cheese_name=Spicy+Juppie&type=buy")
-        ingame = True;
-    
-    seed()
+def cheeseroller():
+    np = lib.NeoPage()
+    while True:
+        np.get(path)
+        if np.contains('Sorry, you can only play 3'):
+            print('Played too much.')
+            return
+        last_time = 0
+        if np.contains('DISTANCE TO FINISH LINE'):
+            last_time = int(np.search(r'TIME TAKEN</b> : (\d+?) seconds')[1])
+        else:
+            # Not in game; buy cheese and play
+            print('Starting new game')
+            np.post(path, 'cheese_name=Spicy+Juppie', 'thingy=1')
+            np.post(path, 'cheese_name=Spicy+Juppie', 'type=buy')
+        won = False
+        while not won:
+            action = random.randint(1,5)
+            print(f'Picking action {action}')
+            np.post(path, 'cheese_action={action}')
+            time_taken = -1
+            if np.contains('DISTANCE TO FINISH LINE'):
+                message = np.search(r'<hr noshade (.*?)>(.*?)<hr noshade')
+                if message:
+                    print(message[2])
+                distance = np.search(r'DISTANCE TO FINISH LINE</b> : (\d+?)m')[1]
+                time_taken = np.search(r'TIME TAKEN</b> : (\d+?) seconds')[1]
+                print(f"DIST: {distance}, TIME: {time_taken}")
+            elif np.contains('finish_cheese_race.gif'):
+                time_taken = np.search(r'You Finished in (\d+?) seconds')[1]
+                score = np.search(r'Your Score</b> : (\d+?)<br>')[1]
+                rating = np.search(r'Your Rating</b> : (.+?)</center>')[1]
+                print(f'Won! Time: {time_taken} sec - Score: {score} - Rating: {rating}')
+                won = True
+            else:
+                print('Error?')
+                break
+            
+            time_taken = int(time_taken)
+            time_elapsed = time_taken - last_time
+            last_time = time_taken
+            log.write(f'{action},{time_elapsed}\n')
 
-    f1 = content.find("DISTANCE TO FINISH LINE")
-    f2 = content.find("finish_cheese_race.gif")
-    f3 = content.find("Enter name of cheese")
-    f32 = content.find("GO!!!!")
-    f4 = content.find("Sorry, you can only play 3")
-    if(f1 >= 0):
-        f2 = content.find("<br>", f1)
-        f3 = content.find("TIME TAKEN", f2)
-        f4 = content.find("</center>", f3)
-        print("DIST: %s TIME: %s" % (content[f1+30:f2], content[f3+17:f4]))
-    elif(f2 >= 0):
-        f1 = content.find("finish_cheese_race.gif")
-        f2 = content.find("<b>", f1)
-        f3 = content.find("</b>", f2)
-        f4 = content.find("</b> :", f3)
-        f5 = content.find("<br>", f4)
-        f6 = content.find("Your Rating", f5)
-        f7 = content.find("</center>", f6)
-        print("%s SCORE: %s RATING: %s" % (content[f2+3:f3], content[f4+7:f5], content[f6+16:f7]))
-        ingame = False
-    elif(f3 >= 0 or f32 >= 0):
-        print("Starting new game...")
-        ingame = False
-    elif(f4 >= 0):
-        print("PLAYED TOO MUCH")
-        sys.exit(0)
-    else:
-        print(content)
-    time.sleep(0.7+random.random())
+            time.sleep(0.7+random.random())
+
+if __name__ == '__main__':
+    cheeseroller()
