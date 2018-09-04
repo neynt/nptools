@@ -7,9 +7,9 @@ import lib
 
 path = '/medieval/cheeseroller.phtml'
 actions = ['Forward Somersault', 'Push Cheese Faster', 'Hold Cheese Steady', 'Dive Left', 'Dive Right']
-log = open('cheeseroller.log', 'a')
 
 def cheeseroller():
+    log = open('cheeseroller.log', 'a')
     np = lib.NeoPage()
     while True:
         np.get(path)

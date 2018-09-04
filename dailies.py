@@ -18,8 +18,11 @@ from plushie import plushie
 from rich_slorg import rich_slorg
 from shrine import shrine
 from tombola import tombola
+from trudys_surprise import trudys_surprise
+from tyranu_evavu import tyranu_evavu
 
 #forgotten_shore()
+trudys_surprise()
 anchor_management()
 apple_bobbing()
 bank_interest()
@@ -34,6 +37,9 @@ rich_slorg()
 tombola()
 jelly()
 shrine()
-coconut_shy()
-cheeseroller()
-kacheek_seek()
+
+def games():
+    #coconut_shy()
+    cheeseroller()
+    kacheek_seek()
+    tyranu_evavu()

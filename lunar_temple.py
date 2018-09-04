@@ -11,7 +11,7 @@ def lunar_temple():
 
     angle_kreludor = int(np.search(r'angleKreludor=(\d+)')[1])
     phase = int(((angle_kreludor + 191) % 360) / 22.5)
-    print(f'Lunar temple: Phase {phase}.', end='')
+    print(f'Lunar temple: Phase {phase}. ', end='')
 
     np.post('/shenkuu/lunar/results.phtml', 'submitted=true', f'phase_choice={phase}')
     if np.contains('That is the correct answer'):

@@ -23,9 +23,17 @@ def reward(correct):
     if correct >= 50: return 7200
     if correct >= 40: return 4800
     if correct >= 30: return 2388
+    if correct >= 21: return 1243
     if correct >= 20: return 1116
+    if correct >= 17: return 734
+    if correct >= 16: return 607
     if correct >= 15: return 408
+    if correct >= 14: return 362
+    if correct >= 13: return 316
+    if correct >= 12: return 271
+    if correct >= 11: return 225
     if correct >= 10: return 156
+    if correct >= 8: return 93
     if correct >= 6: return 31
     if correct >= 5: return 18
     if correct >= 4: return 14
@@ -83,15 +91,16 @@ def tyranu_evavu():
     np = lib.NeoPage(path)
 
     while True:
+        # Start a new game.
+        ref_ck = np.search(r"<input type=hidden name='_ref_ck' value='(.*?)'>")[1]
+        dealer = np.search(r"<input type=hidden name='dealer' value='(\d+)'>")[1]
+        np.post(path, f'_ref_ck={ref_ck}', 'type=play', 'action=shuffle', r'dealer={dealer}')
+
         if np.contains('played enough for today'):
             print('Tyranu Evavu: Played enough for today.')
             return
 
-        # Start a new game.
         print('Tyranu Evavu: Starting game. (-30 NP)')
-        ref_ck = np.search(r"<input type=hidden name='_ref_ck' value='(.*?)'>")[1]
-        dealer = np.search(r"<input type=hidden name='dealer' value='(\d+)'>")[1]
-        np.post(path, f'_ref_ck={ref_ck}', 'type=play', 'action=shuffle', r'dealer={dealer}')
 
         counts = dict(zip(nums, [4]*13))
         while True:
@@ -122,6 +131,6 @@ def tyranu_evavu():
                 break
 
 if __name__ == '__main__':
-    stats()
+    #stats()
     #solve()
-    #tyranu_evavu()
+    tyranu_evavu()

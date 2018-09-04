@@ -6,21 +6,26 @@ import time
 def dict_to_eq_pairs(kwargs):
     return [f'{k}={v}' for k, v in kwargs.items()]
 
+class NotLoggedInError(Exception):
+    pass
+
 class NeoPage:
-    def __init__(self, path=None):
+    def __init__(self, path=None, user_agent='Mozilla/5.0'):
         self.storage = io.BytesIO()
-        self.content = ''
         self.base_url = 'http://www.neopets.com'
         self.curl = pycurl.Curl()
         self.curl.setopt(pycurl.WRITEFUNCTION, self.storage.write)
         self.curl.setopt(pycurl.COOKIEFILE, 'nptools.cookies')
         self.curl.setopt(pycurl.COOKIEJAR, 'nptools.cookies')
-        self.curl.setopt(pycurl.USERAGENT, "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/68.0.3440.84 Safari/537.36")
+        self.curl.setopt(pycurl.USERAGENT, user_agent)
         if path:
             self.get(path)
 
     def save_to_file(self, filename):
         open(filename, 'w').write(self.content)
+
+    def load_file(self, filename):
+        self.content = open(filename, 'r').read()
 
     def perform(self, url):
         self.curl.setopt(pycurl.URL, url)
@@ -29,9 +34,6 @@ class NeoPage:
         self.curl.perform()
         self.content = self.storage.getvalue().decode('utf-8')
         self.curl.setopt(pycurl.REFERER, url)
-
-        if 'templateLoginPopupIntercept' in self.content:
-            print('Warning: Not logged in?')
 
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:

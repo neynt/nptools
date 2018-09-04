@@ -1,5 +1,8 @@
 *.pyc
 *.pyignore
+.env
 __pycache__
 pages
 nptools.cookies
+*.log
+*.pickle
