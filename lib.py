@@ -12,6 +12,7 @@ class NotLoggedInError(Exception):
 class NeoPage:
     def __init__(self, path=None, user_agent='Mozilla/5.0'):
         self.storage = io.BytesIO()
+        self.content = ''
         self.base_url = 'http://www.neopets.com'
         self.curl = pycurl.Curl()
         self.curl.setopt(pycurl.WRITEFUNCTION, self.storage.write)
@@ -34,6 +35,8 @@ class NeoPage:
         self.curl.perform()
         self.content = self.storage.getvalue().decode('utf-8')
         self.curl.setopt(pycurl.REFERER, url)
+        if 'templateLoginPopupIntercept' in self.content:
+            print('Warning: Not logged in?')
 
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:
@@ -66,7 +69,7 @@ class NeoPage:
         self.save_page(url, 'post_url')
 
     def post(self, path, *params, **kwargs):
-        self.post_url(self.base_url + path, *params, **kwargs)
+        self.post_base(self.base_url + path, *params, **kwargs)
         self.save_page(path, 'post')
 
     def find(self, *strings):

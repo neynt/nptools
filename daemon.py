@@ -7,6 +7,7 @@ import pickle
 import time
 import logging
 import sys
+import random
 
 #from forgotten_shore import forgotten_shore
 from anchor_management import anchor_management
@@ -28,6 +29,7 @@ from shrine import shrine
 from tombola import tombola
 from trudys_surprise import trudys_surprise
 from tyranu_evavu import tyranu_evavu
+from pyramids import pyramids
 
 import lib
 
@@ -40,7 +42,7 @@ def now_nst():
 # Does something at 6am NST next day.
 def daily(last_time: datetime):
     next_time = last_time + timedelta(days=1)
-    return next_time.replace(hour=4, minute=0, second=0)
+    return next_time.replace(hour=4, minute=0, second=random.randint(0, 59))
 
 def after(**kwargs):
     def f(last_time: datetime):
@@ -64,7 +66,8 @@ tasks = [
     ('tombola', tombola, daily),
     ('jelly', jelly, daily),
     ('shrine', shrine, daily),
-    ('kacheek_seek', kacheek_seek, daily)
+    ('kacheek_seek', kacheek_seek, daily),
+    ('pyramids', lambda:pyramids(True), daily),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
@@ -84,6 +87,19 @@ def pprint_seconds(secs):
     else:
         return f'{secs:.2f}s'
 
+def ensure_login():
+    np = lib.NeoPage()
+    np.get('/')
+    if 'templateLoginPopupIntercept' in np.content:
+        user = os.environ.get('NP_USER')
+        pswd = os.environ.get('NP_PASS')
+        np.login(user, pswd)
+        if 'templateLoginPopupIntercept' in np.content:
+            print('Failed to log in!')
+            sys.exit(1)
+        else:
+            print('Logged in.')
+
 def main():
     # State
     last_done = {}
@@ -100,6 +116,7 @@ def main():
 
     for name, f, next_time in tasks:
         if name not in last_done:
+            ensure_login()
             print(f'Never did {name} before. Doing.')
             f()
             last_done[name] = now_nst()
@@ -113,23 +130,14 @@ def main():
                 nxt = next_time(last_done[name])
                 time_til = (nxt - now).total_seconds()
                 if time_til > 0:
-                    print(f'Time until next action ({name}): {pprint_seconds(time_til)}')
+                    print(f'[Time until next action ({name}): {pprint_seconds(time_til)}]')
                     while True:
                         now = now_nst()
                         time_til = (nxt - now).total_seconds()
                         if time_til <= 0: break
                         time.sleep(min(60, time_til))
-
-                # Log in if necessary
-                np = lib.NeoPage('/')
-                if 'templateLoginPopupIntercept' in np.content:
-                    print('Logging in')
-                    np.login(os.environ.get('NP_USER'), os.environ.get('NP_PASS'))
-                    if 'templateLoginPopupIntercept' in np.content:
-                        print('Failed to log in!')
-                        sys.exit(1)
-
-                print(f'Doing {name}')
+                ensure_login()
+                print(f'[Doing {name}]')
                 f()
                 last_done[name] = now_nst()
         except lib.NotLoggedInError:

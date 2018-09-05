@@ -11,6 +11,10 @@ def deserted_tomb():
     np.post('/worlds/geraptiku/process_tomb.phtml')
     if np.contains('right on top of a Petpet.'):
         print('Deserted tomb: Got item. TODO')
+    elif np.contains('EUREKA!'):
+        prize = np.search(r'<strong>(.*?)</strong> <strong>Neopoints</strong>')[1]
+        prize = int(prize.replace(',', ''))
+        print(f'Deserted tomb: Found treasure! Got items and {prize} NP.')
     elif np.contains('FIDDLESTICKS!'):
         print('Deserted tomb: Found empty treasure chamber.')
     elif np.contains('A giant monster leaps out from the darkness'):

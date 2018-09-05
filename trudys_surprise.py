@@ -15,7 +15,7 @@ def trudys_surprise():
         np.get('/trudys_surprise.phtml')
         np.post('/trudydaily/ajax/claimprize.php', 'action=beginroll')
         result = json.loads(np.content)
-        print(f"Trudy's Surprise: Won {result['prizes']}. Now have {result['adjustedNP']} NP.")
+        print(f"Trudy's Surprise: Won {result['prizes']}. Now have {result['adjustedNp']} NP.")
         time.sleep(0.7)
         np.post('/trudydaily/ajax/claimprize.php', 'action=prizeclaimed')
         np.get('/trudys_surprise.phtml')
