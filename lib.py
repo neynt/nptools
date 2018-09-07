@@ -3,6 +3,9 @@ import pycurl
 import re
 import time
 
+def strip_tags(text):
+    return ' '.join([t.strip() for t in re.split(r'<.*?>', text) if t.strip()])
+
 def dict_to_eq_pairs(kwargs):
     return [f'{k}={v}' for k, v in kwargs.items()]
 
@@ -13,6 +16,7 @@ class NeoPage:
     def __init__(self, path=None, user_agent='Mozilla/5.0'):
         self.storage = io.BytesIO()
         self.content = ''
+        self.last_file_path = ''
         self.base_url = 'http://www.neopets.com'
         self.curl = pycurl.Curl()
         self.curl.setopt(pycurl.WRITEFUNCTION, self.storage.write)
@@ -37,6 +41,13 @@ class NeoPage:
         self.curl.setopt(pycurl.REFERER, url)
         if 'templateLoginPopupIntercept' in self.content:
             print('Warning: Not logged in?')
+        if 'randomEventDiv' in self.content:
+            event = self.search(r'<div class="copy">.*?\t</div>')
+            if event:
+                event = strip_tags(event[1])
+                print('[Random event: {event}]')
+            else:
+                print('[Random event]')
 
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:
@@ -48,7 +59,8 @@ class NeoPage:
     def save_page(self, url, tag):
         url = url.replace('/', '_')
         time_ms = int(time.time() * 1000)
-        self.save_to_file(f'pages/{url}_{tag}@{time_ms}')
+        self.last_file_path = f'pages/{url}_{tag}@{time_ms}'
+        self.save_to_file(self.last_file_path)
 
     def get_url(self, url, *params, **kwargs):
         self.get_base(url, *params, **kwargs)
@@ -83,7 +95,10 @@ class NeoPage:
     
     def search(self, regex):
         r = re.compile(regex, re.DOTALL)
-        return r.search(self.content)
+        result = r.search(self.content)
+        if not result:
+            print(f'Warning: Search {regex} failed for page {self.last_file_path}')
+        return result
     
     def findall(self, regex):
         r = re.compile(regex, re.DOTALL)

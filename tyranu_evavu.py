@@ -34,6 +34,7 @@ def reward(correct):
     if correct >= 11: return 225
     if correct >= 10: return 156
     if correct >= 8: return 93
+    if correct >= 7: return 62
     if correct >= 6: return 31
     if correct >= 5: return 18
     if correct >= 4: return 14
@@ -131,6 +132,6 @@ def tyranu_evavu():
                 break
 
 if __name__ == '__main__':
-    #stats()
+    stats()
     #solve()
-    tyranu_evavu()
+    #tyranu_evavu()

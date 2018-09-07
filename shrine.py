@@ -10,8 +10,7 @@ def shrine():
     if np.contains('shrine_win.gif'):
         result = np.findall(r'<p>.*?<br clear="all">')[0]
         result = re.search(r'<div align="center">(.*?)</form>', result)[1]
-        results = [r.strip() for r in re.split(r'<.*?>', result) if r.strip()]
-        result = ' '.join(results)
+        result = lib.strip_tags(result)
         print(f"Coltzan's Shrine: {result}")
     elif np.contains('Maybe you should wait a while'):
         print("Coltzan's Shrine: Already visited.")

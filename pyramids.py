@@ -25,6 +25,7 @@ def all_paths(cur_card, cards):
                 result.append((cards_revealed, [card]))
                 for (cr, subpath) in all_paths(card, cards):
                     result.append((cards_revealed + cr, [card] + subpath))
+                cards[i][j] = card
     return result
 
 def best_move(cur_card, cards):
@@ -49,8 +50,8 @@ def pyramids(np_only=False):
                 verb = 'Got'
                 noun = 'pts'
                 reached_limit = True
-            status = np.search(r'<b>Congratulations.*?<b>.*?<b>(.*?)</b>.*?points.*?total score has been updated to <b>(.*?)</b>.*?have played <b>(.*?)</b> game.*?cleared the pyramid <b>(.*?)</b>.*?current win streak is <b>(.*?)</b>')
-            print(f'\nPyramids: {verb} {status[1]} {noun}. Total: {status[2]}. Games: {status[3]}. Won: {status[4]}. Streak: {status[5]}.')
+            status = np.search(r'Congratulations.*?<b>(\d+?)</b> (Neo)?points!.*total score has been updated to <b>(.*?)</b>.*?have played <b>(.*?)</b> game.*?cleared the pyramid <b>(.*?)</b>.*?current win streak is <b>(.*?)</b>')
+            print(f'\nPyramids: {verb} {status[1]} {noun}. Total: {status[3]}. Games: {status[4]}. Won: {status[5]}. Streak: {status[6]}.')
             if reached_limit and np_only:
                 break
             print('Pyramids: ', end='')

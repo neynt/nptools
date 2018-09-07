@@ -30,6 +30,7 @@ from tombola import tombola
 from trudys_surprise import trudys_surprise
 from tyranu_evavu import tyranu_evavu
 from pyramids import pyramids
+from pirate_academy import pirate_academy
 
 import lib
 
@@ -68,6 +69,7 @@ tasks = [
     ('shrine', shrine, daily),
     ('kacheek_seek', kacheek_seek, daily),
     ('pyramids', lambda:pyramids(True), daily),
+    ('pirate_academy', pirate_academy, after(hours=1.01)),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
@@ -114,7 +116,7 @@ def main():
         print('Saving data...')
         pickle.dump(last_done, open(PICKLE_FILE, 'wb'))
 
-    for name, f, next_time in tasks:
+    for name, f, _next_time in tasks:
         if name not in last_done:
             ensure_login()
             print(f'Never did {name} before. Doing.')

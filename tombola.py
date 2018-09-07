@@ -12,7 +12,7 @@ def tombola():
 
     if np.contains('YOU ARE A WINNER!!!'):
         result = np.search(r'\n<center>(.*?)\n')[1]
-        print('Tombola: Won. {result}')
+        print(f'Tombola: Won. {result}')
     elif np.contains('you win a Booby Prize'):
         prize = np.search(r'<b>Your Prize - (.*?)</b>')[1]
         print(f'Tombola: Won booby prize: {prize}')

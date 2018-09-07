@@ -10,6 +10,7 @@ def fruit_machine():
         ck = np.search(r'<input type="hidden" name="ck" value="(.*?)">')[1]
         np.post(path, 'spin=1', f'ck={ck}')
         prize = np.search(r'<div id="fruitResult">(.*?)</div>')[1].strip()
+        prize = lib.strip_tags(prize)
         print(f'Fruit machine: {prize}')
     elif np.contains('already had your free spin'):
         print('Fruit machine: Already played.')
