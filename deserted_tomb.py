@@ -18,7 +18,7 @@ def deserted_tomb():
     elif np.contains('FIDDLESTICKS!'):
         print('Deserted tomb: Found empty treasure chamber.')
     elif np.contains('A giant monster leaps out from the darkness'):
-        print('Deserted tomb: Monster! TODO')
+        print('Deserted tomb: Monster.')
     elif np.contains('You watch as the arrows fly right at you'):
         print('Deserted tomb: Traps! TODO')
     elif np.contains('Deserted Tomb'):

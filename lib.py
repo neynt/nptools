@@ -1,6 +1,8 @@
 import io
+from datetime import datetime
 import pycurl
 import re
+import sqlite3
 import time
 
 def strip_tags(text):
@@ -42,7 +44,7 @@ class NeoPage:
         if 'templateLoginPopupIntercept' in self.content:
             print('Warning: Not logged in?')
         if 'randomEventDiv' in self.content:
-            event = self.search(r'<div class="copy">.*?\t</div>')
+            event = self.search(r'<div class="copy">(.*?)\t</div>')
             if event:
                 event = strip_tags(event[1])
                 print('[Random event: {event}]')
@@ -112,3 +114,72 @@ class NeoPage:
     
     def login(self, user, pwd):
         self.post('/login.phtml', f'username={user}&password={pwd}')
+
+class ItemDb:
+    def __init__(self, filename):
+        self.conn = sqlite3.connect(filename, detect_types=sqlite3.PARSE_DECLTYPES)
+
+    def init_schema(self):
+        c = self.conn.cursor()
+        c.execute('''
+        CREATE TABLE IF NOT EXISTS items (
+            id integer primary key,
+            name text not null,
+            image text,
+            desc text,
+            price real,
+            liquidity int,
+            last_updated timestamp,
+            price_last_updated timestamp,
+            UNIQUE (name, image)
+        )
+        ''')
+        self.conn.commit()
+
+    def query(self, q, *args):
+        c = self.conn.cursor()
+        result = c.execute(q, args)
+        self.conn.commit()
+        return result
+
+item_db = ItemDb('itemdb.db')
+item_db.init_schema()
+
+class Inventory:
+    def __init__(self, np=None):
+        if not np:
+            np = NeoPage()
+        self.np = np
+
+    def list_items(self):
+        self.np.get('/inventory.phtml')
+        items = self.np.findall(r'\n<td class=.*?>.*?</td>')
+        for item in items:
+            attr = re.search(r'<td class="(.*?)"><a href="javascript:;" onclick="openwin\((\d+)\);"><img src="http://images.neopets.com/items/(.*?)" width="80" height="80" title="(.*?)" alt="(.*?)" border="0" class="(.*?)"></a><br>(.*?)(<hr noshade size="1" color="#DEDEDE"><span class="attr medText">(.*?)</span>)?</td>', item)
+            item_id = attr[2]
+            item_image = attr[3]
+            item_desc = attr[4]
+            item_name = attr[7]
+            print(f'{item_id}: {item_name} ({item_image})')
+
+            item_db.query('''
+            INSERT INTO items (name,image,desc,last_updated)
+            VALUES (?,?,?,?)
+            ON CONFLICT (name,image) DO UPDATE SET desc=?, last_updated=?
+            ''', item_name, item_image,
+            item_desc, datetime.now(),
+            item_desc, datetime.now())
+
+    def deposit_all(self, exclude=[]):
+        self.np.get('/quickstock.phtml')
+        items = self.np.findall(r'''<TD align="left">(.*?)</TD><INPUT type="hidden"  name="id_arr\[(.*?)\]" value="(\d+?)">''')
+        args = []
+        args.append('buyitem=0')
+        for name, idx, item_id in items:
+            args.append(f'id_arr[{idx}]={item_id}')
+            if name not in exclude:
+                args.append(f'radio_arr[{idx}]=deposit')
+        print(args)
+        self.np.post('/process_quickstock.phtml', *args)
+
+inv = Inventory()
