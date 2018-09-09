@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# TODO: This greedy AI is pretty good as is, but could be improved by tracking
+# cards and guessing the chance that uncovered cards will extend the streak.
+
 import random
 import re
 import time

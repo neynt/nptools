@@ -47,7 +47,7 @@ class NeoPage:
             event = self.search(r'<div class="copy">(.*?)\t</div>')
             if event:
                 event = strip_tags(event[1])
-                print('[Random event: {event}]')
+                print(f'[Random event: {event}]')
             else:
                 print('[Random event]')
 
@@ -170,7 +170,9 @@ class Inventory:
             item_desc, datetime.now(),
             item_desc, datetime.now())
 
-    def deposit_all(self, exclude=[]):
+    def deposit_all_items(self, exclude=[]):
+        # First list items to add them to the item db
+        self.list_items()
         self.np.get('/quickstock.phtml')
         items = self.np.findall(r'''<TD align="left">(.*?)</TD><INPUT type="hidden"  name="id_arr\[(.*?)\]" value="(\d+?)">''')
         args = []
@@ -181,5 +183,17 @@ class Inventory:
                 args.append(f'radio_arr[{idx}]=deposit')
         print(args)
         self.np.post('/process_quickstock.phtml', *args)
+
+    def ensure_np(self, amount):
+        # Withdraws from the bank to get up at least [amount] NP.
+        self.np.get('/bank.phtml')
+        nps = self.np.search(r'''<a id='npanchor' href="/inventory.phtml">(.*?)</a>''')[1]
+        nps = int(nps.replace(',', ''))
+        if nps >= amount: return
+        need = amount - nps
+        # Round up to next small multiple of power of ten
+        need = 10**(len(str(need)) - 1) * (int(str(need)[0]) + 1)
+        self.np.post('/process_bank.phtml', 'type=withdraw', f'amount={need}')
+        print(f'Withdrawing {need} NP')
 
 inv = Inventory()

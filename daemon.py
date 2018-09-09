@@ -1,13 +1,11 @@
 #!/usr/bin/env python3
-
-from datetime import datetime, timedelta
 import atexit
+import datetime
+import logging
 import os
 import pickle
-import time
-import logging
 import sys
-import random
+import time
 
 from anchor_management import anchor_management
 from apple_bobbing import apple_bobbing
@@ -16,6 +14,7 @@ from cheeseroller import cheeseroller
 from coconut_shy import coconut_shy
 from council_chamber import council_chamber
 from deserted_tomb import deserted_tomb
+from faerie_caverns import faerie_caverns
 from fishing import fishing
 from forgotten_shore import forgotten_shore
 from fruit_machine import fruit_machine
@@ -29,51 +28,42 @@ from plushie import plushie
 from pyramids import pyramids
 from rich_slorg import rich_slorg
 from shrine import shrine
+from snowager import snowager
+from stock_market import stock_market
 from tombola import tombola
 from trudys_surprise import trudys_surprise
 from tyranu_evavu import tyranu_evavu
 
 import lib
+import neotime
+from neotime import daily, now_nst
 
-# Current Neopian standard time.
-def now_nst():
-    t = datetime.utcnow()
-    t -= timedelta(hours=7)
-    return t
-
-# Does something at 6am NST next day.
-def daily(last_time: datetime):
-    next_time = last_time + timedelta(days=1)
-    return next_time.replace(hour=4, minute=0, second=random.randint(0, 59))
-
-def after(**kwargs):
-    def f(last_time: datetime):
-        return last_time + timedelta(**kwargs)
-    return f
-
-# List[Tuple[String, Callable[[], None], Callable[[datetime], datetime]]]
+# List[Tuple[String, Callable[[], None], Callable[[datetime], Optional[datetime]]]]
 tasks = [
-    ('trudys_surprise', trudys_surprise, daily),
-    ('anchor_management', anchor_management, daily),
-    ('apple_bobbing', apple_bobbing, daily),
-    ('bank_interest', bank_interest, daily),
-    ('council_chamber', council_chamber, daily),
-    ('forgotten_shore', forgotten_shore, daily),
-    ('deserted_tomb', deserted_tomb, daily),
-    ('fishing', fishing, after(hours=2)),
-    ('fruit_machine', fruit_machine, daily),
-    ('lunar_temple', lunar_temple, daily),
-    ('omelette', omelette, daily),
-    ('plushie', plushie, daily),
-    ('rich_slorg', rich_slorg, daily),
-    ('tombola', tombola, daily),
-    ('jelly', jelly, daily),
-    ('shrine', shrine, daily),
-    ('kacheek_seek', kacheek_seek, daily),
-    ('pyramids', lambda:pyramids(True), daily),
-    ('pirate_academy', pirate_academy, after(hours=1.01)),
-    ('healing_springs', healing_springs, after(minutes=35)),
-    ('clean inventory', lambda:lib.inv.deposit_all(exclude=['Two Dubloon Coin', 'Pant Devil Attractor']), after(hours=5)),
+    ('anchor_management', anchor_management, daily(0)),
+    ('apple_bobbing', apple_bobbing, daily(0)),
+    ('bank_interest', bank_interest, daily(0)),
+    ('clean inventory', lambda:lib.inv.deposit_all_items(exclude=['Two Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
+    ('council_chamber', council_chamber, daily(0)),
+    ('deserted_tomb', deserted_tomb, daily(0)),
+    ('faerie_caverns', faerie_caverns, daily(0)),
+    ('fishing', fishing, neotime.after(hours=2)),
+    ('forgotten_shore', forgotten_shore, daily(0)),
+    ('fruit_machine', fruit_machine, daily(0)),
+    #('healing_springs', healing_springs, neotime.after(minutes=35)),
+    ('jelly', jelly, daily(0)),
+    ('kacheek_seek', kacheek_seek, daily(30)),
+    ('lunar_temple', lunar_temple, daily(0)),
+    ('omelette', omelette, daily(0)),
+    ('pirate_academy', pirate_academy, neotime.immediate),
+    ('plushie', plushie, daily(0)),
+    ('pyramids', lambda:pyramids(True), daily(30)),
+    ('rich_slorg', rich_slorg, daily(0)),
+    ('shrine', shrine, daily(0)),
+    ('snowager', snowager, neotime.snowager_time),
+    ('stock_market', stock_market, daily(15)),
+    ('tombola', tombola, daily(0)),
+    ('trudys_surprise', trudys_surprise, daily(0)),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
@@ -144,8 +134,10 @@ def main():
                         time.sleep(min(60, time_til))
                 ensure_login()
                 print(f'[Doing {name}]')
-                f()
-                last_done[name] = now_nst()
+                # This allows individual functions to override the "time at
+                # which the thing was done". For example, the Snowager should
+                # noly be done once each time it wakes up.
+                last_done[name] = f() or now_nst()
         except lib.NotLoggedInError:
             print('Unable to log in.')
         except KeyboardInterrupt:

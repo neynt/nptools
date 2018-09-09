@@ -8,6 +8,7 @@ def faerie_caverns():
     if np.contains('already visited today'):
         print('Already did faerie caverns.')
     else:
+        lib.inv.ensure_np(400)
         while True:
             np.post(url, 'play=1')
             if np.contains('caverns/faerie_cave'):

@@ -132,6 +132,6 @@ def tyranu_evavu():
                 break
 
 if __name__ == '__main__':
-    stats()
+    #stats()
     #solve()
-    #tyranu_evavu()
+    tyranu_evavu()

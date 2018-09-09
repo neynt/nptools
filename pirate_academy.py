@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 
+import datetime
 import re
 
 import lib
+import neotime
 
 path = '/pirates/academy.phtml'
 
@@ -56,7 +58,16 @@ def pirate_academy():
 
     print(f'Status: {lib.strip_tags(status)}')
     print(f'Stats: Lvl{Lvl} Str{Str} Def{Def} Mov{Mov} Hp{Hp}')
-    print(f'Time til: {lib.strip_tags(time_til)}')
+    print(time_til)
+    total_time = datetime.timedelta()
+    result = np.search('(\d+) hr')[1]
+    if result: total_time += datetime.timedelta(hours=int(result))
+    result = np.search('(\d+) minute')[1]
+    if result: total_time += datetime.timedelta(minutes=int(result))
+    result = np.search('(\d+) second')[1]
+    if result: total_time += datetime.timedelta(seconds=int(result))
+    print(f'Time til: {total_time}')
+    return neotime.now_nst() + total_time + datetime.timedelta(minutes=1)
 
 if __name__ == '__main__':
     pirate_academy()
