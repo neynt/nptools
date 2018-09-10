@@ -23,13 +23,20 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 - Sakhmet Solitaire (5k/day)
 - Faerieland jobs (~5-10k/day)
 - Cliffhanger (1500 NP/day)
+- Scarab 21 (5k/day)
+- Cheat
+- Sewage Surfer
+- Shapeshifter
+- Go go go
+- Godori
 - Krawps
 - Kiko Pop
 - Wheels
+- Neggsweeper (3k/day)
+- NeoPoker
+  - full house: 100NP
 - Scratchcards
 - Turmaculus
-- Wise king
-- Grumpy king
 - Restocking
 - Monthly freebies: http://www.neopets.com/freebies/index.phtml
 - Potato counter
@@ -41,3 +48,4 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 - Quests
 - Mystery pic (really interesting automation problem)
 - Lottery (avatar, and slightly +EV (more if you pick numbers other people don't))
+- Fetch (maze solving with hidden information)

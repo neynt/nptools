@@ -33,6 +33,8 @@ from stock_market import stock_market
 from tombola import tombola
 from trudys_surprise import trudys_surprise
 from tyranu_evavu import tyranu_evavu
+from grumpy_king import grumpy_king
+from wise_king import wise_king
 
 import lib
 import neotime
@@ -50,7 +52,7 @@ tasks = [
     ('fishing', fishing, neotime.after(hours=2)),
     ('forgotten_shore', forgotten_shore, daily(0)),
     ('fruit_machine', fruit_machine, daily(0)),
-    #('healing_springs', healing_springs, neotime.after(minutes=35)),
+    ('healing_springs', healing_springs, neotime.after(minutes=35)),
     ('jelly', jelly, daily(0)),
     ('kacheek_seek', kacheek_seek, daily(30)),
     ('lunar_temple', lunar_temple, daily(0)),
@@ -59,11 +61,13 @@ tasks = [
     ('plushie', plushie, daily(0)),
     ('pyramids', lambda:pyramids(True), daily(30)),
     ('rich_slorg', rich_slorg, daily(0)),
-    ('shrine', shrine, daily(0)),
-    ('snowager', snowager, neotime.snowager_time),
+    ('shrine', shrine, neotime.after(hours=12, minutes=1)),
+    ('snowager', snowager, neotime.next_snowager_time),
     ('stock_market', stock_market, daily(15)),
     ('tombola', tombola, daily(0)),
     ('trudys_surprise', trudys_surprise, daily(0)),
+    ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(0))),
+    ('wise_king', wise_king, neotime.skip_lunch(daily(0))),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
@@ -124,6 +128,7 @@ def main():
                 now = now_nst()
                 name, f, next_time = min(tasks, key=find_next_task)
                 nxt = next_time(last_done[name])
+                print(f'{name}: Last done {last_done[name]}, next is {nxt}')
                 time_til = (nxt - now).total_seconds()
                 if time_til > 0:
                     print(f'[Time until next action ({name}): {pprint_seconds(time_til)}]')

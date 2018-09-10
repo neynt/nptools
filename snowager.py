@@ -10,7 +10,6 @@ def snowager():
     np = lib.NeoPage(path)
     if np.contains('The Snowager is awake'):
         print('Snowager: Awake.')
-        return dont_do_again
     np.get(path2)
     result = np.search(r'<p>(.*?)<p></center><center>')
     if result:

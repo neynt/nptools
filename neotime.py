@@ -27,15 +27,26 @@ def after(**kwargs):
 def immediate(last_time):
     return last_time
 
-def snowager_time(last_time_):
+def next_snowager_time(last_time):
     now = now_nst()
-    if now.time() < datetime.time(7, 0, 0):
-        return now.replace(hour=6, minute=1, second=0)
-    elif now.time() < datetime.time(15, 0, 0):
-        return now.replace(hour=14, minute=1, second=0)
-    elif now.time() < datetime.time(23, 0, 0):
-        return now.replace(hour=22, minute=1, second=0)
+    if last_time.time() < datetime.time(7, 0, 0):
+        return last_time.replace(hour=6, minute=1, second=0)
+    elif last_time.time() < datetime.time(15, 0, 0):
+        return last_time.replace(hour=14, minute=1, second=0)
+    elif last_time.time() < datetime.time(23, 0, 0):
+        return last_time.replace(hour=22, minute=1, second=0)
     else:
         now += datetime.timedelta(days=1)
         return now.replace(hour=6, minute=1, second=0)
 
+# Transforms an existing next-timer by skipping King Skarl's lunchtime.
+def skip_lunch(f):
+    lunch_hours = [8, 13, 19]
+    def g(last_time: datetime.datetime):
+        next_time = f(last_time)
+        next_time = max(next_time, now_nst())
+        for h in lunch_hours:
+            if datetime.time(h-1, 59, 0) <= next_time.time() <= datetime.time(h+1, 0, 0):
+                return next_time.replace(hour=h+1, minute=1, second=0)
+        return next_time
+    return g
