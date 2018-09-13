@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import pycurl
 import atexit
 import datetime
 import logging
@@ -35,6 +36,8 @@ from trudys_surprise import trudys_surprise
 from tyranu_evavu import tyranu_evavu
 from grumpy_king import grumpy_king
 from wise_king import wise_king
+from plushie_tycoon import plushie_tycoon
+from battledome import battledome
 
 import lib
 import neotime
@@ -68,6 +71,8 @@ tasks = [
     ('trudys_surprise', trudys_surprise, daily(0)),
     ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(0))),
     ('wise_king', wise_king, neotime.skip_lunch(daily(0))),
+    ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
+    ('battledome', battledome, daily(30)),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
@@ -122,34 +127,45 @@ def main():
             last_done[name] = now_nst()
 
     find_next_task = lambda t: t[2](last_done[t[0]])
+    failures = []
     while True:
         try:
             while True:
                 now = now_nst()
                 name, f, next_time = min(tasks, key=find_next_task)
                 nxt = next_time(last_done[name])
-                print(f'{name}: Last done {last_done[name]}, next is {nxt}')
+                #print(f'{name}: Last done {last_done[name]}, next is {nxt}')
                 time_til = (nxt - now).total_seconds()
                 if time_til > 0:
-                    print(f'[Time until next action ({name}): {pprint_seconds(time_til)}]')
+                    print(f'[Doing {name} in {pprint_seconds(time_til)}]')
                     while True:
                         now = now_nst()
                         time_til = (nxt - now).total_seconds()
                         if time_til <= 0: break
                         time.sleep(min(60, time_til))
+                else:
+                    print(f'[Doing {name}]')
                 ensure_login()
-                print(f'[Doing {name}]')
                 # This allows individual functions to override the "time at
-                # which the thing was done". For example, the Snowager should
-                # noly be done once each time it wakes up.
+                # which the thing was done". For example, this is used to make
+                # sure we only do the Snowager once every time it wakes up.
                 last_done[name] = f() or now_nst()
         except lib.NotLoggedInError:
             print('Unable to log in.')
         except KeyboardInterrupt:
             print('Shutting down.')
             break
-        except:
+        except pycurl.error as e:
+            print('pycurl error:', e)
+            time.sleep(1)
+        except Exception as e:
             logging.exception('')
+            failures.append(e)
+            if len(failures) > 10:
+                print('Failures:')
+                print(e)
+                print('Too many failures; exiting.')
+                break
 
 if __name__ == '__main__':
     main()

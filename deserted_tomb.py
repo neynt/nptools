@@ -10,7 +10,11 @@ def deserted_tomb():
     np.post('/worlds/geraptiku/tomb.phtml', 'opened=1')
     np.post('/worlds/geraptiku/process_tomb.phtml')
     if np.contains('right on top of a Petpet.'):
-        print('Deserted tomb: Got item. TODO')
+        img = np.search(r'<div align="center"><img src="http://images.neopets.com/items/(.*?)" width="80" height="80" alt="" border="0"></div>')[1]
+        if img:
+            print(f'Deserted tomb: Got item with image {img}.')
+        else:
+            print('Deserted tomb: Got item, could not find image. TODO')
     elif np.contains('EUREKA!'):
         prize = np.search(r'<strong>(.*?)</strong> <strong>Neopoints</strong>')[1]
         prize = int(prize.replace(',', ''))

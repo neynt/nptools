@@ -55,17 +55,21 @@ def pirate_academy():
         print(f'Pirate Academy: Paying for lesson')
         pet_name = np.search(f"<input type='hidden' name='pet_name' value='(.*?)'>")[1]
         np.post('/pirates/process_academy.phtml', f'pet_name={pet_name}', 'type=pay')
+        np.get(path, 'type=status')
 
     print(f'Status: {lib.strip_tags(status)}')
     print(f'Stats: Lvl{Lvl} Str{Str} Def{Def} Mov{Mov} Hp{Hp}')
     print(time_til)
     total_time = datetime.timedelta()
-    result = np.search('(\d+) hr')[1]
-    if result: total_time += datetime.timedelta(hours=int(result))
-    result = np.search('(\d+) minute')[1]
-    if result: total_time += datetime.timedelta(minutes=int(result))
-    result = np.search('(\d+) second')[1]
-    if result: total_time += datetime.timedelta(seconds=int(result))
+    if np.contains('hr'):
+        result = np.search('(\d+) hr')
+        if result: total_time += datetime.timedelta(hours=int(result[1]))
+    if np.contains('minute'):
+        result = np.search('(\d+) minute')
+        if result: total_time += datetime.timedelta(minutes=int(result[1]))
+    if np.contains('second'):
+        result = np.search('(\d+) second')
+        if result: total_time += datetime.timedelta(seconds=int(result[1]))
     print(f'Time til: {total_time}')
     return neotime.now_nst() + total_time + datetime.timedelta(minutes=1)
 

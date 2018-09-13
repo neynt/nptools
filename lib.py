@@ -1,5 +1,6 @@
 import io
 from datetime import datetime
+import os
 import pycurl
 import re
 import sqlite3
@@ -59,9 +60,13 @@ class NeoPage:
         self.perform(url)
 
     def save_page(self, url, tag):
-        url = url.replace('/', '_')
+        parts = [x for x in url.split('/') if x]
+        if not parts: parts = ['_']
+        path_parts, filename = parts[:-1], parts[-1]
+        path = '/'.join(['pages'] + path_parts)
+        os.makedirs(path, exist_ok=True)
         time_ms = int(time.time() * 1000)
-        self.last_file_path = f'pages/{url}_{tag}@{time_ms}'
+        self.last_file_path = f'{path}/{filename}_{tag}@{time_ms}'
         self.save_to_file(self.last_file_path)
 
     def get_url(self, url, *params, **kwargs):

@@ -76,6 +76,7 @@ def stock_market():
             lib.inv.ensure_np(price * 1000)
 
             for sym, amt in to_buy_amt.items():
+                if amt == 0: continue
                 np.get('/stockmarket.phtml?type=buy')
                 _ref_ck = np.search(r"<input type='hidden' name='_ref_ck' value='(.*?)'>")[1]
                 np.post('/process_stockmarket.phtml?', f'_ref_ck={_ref_ck}', 'type=buy', f'ticker_symbol={sym}', f'amount_shares={amt}')

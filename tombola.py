@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import re
+
 import lib
 
 def tombola():
@@ -13,7 +15,7 @@ def tombola():
     if np.contains('YOU ARE A WINNER!!!'):
         result = np.search(r'\n<center>(.*?)\n')[1]
         image = re.search(r"<img src='http://images.neopets.com/items/(.*?)'", result)[1]
-        result = lib.strip_tags()
+        result = lib.strip_tags(result)
         print(f'Tombola: Won. {result} ({image})')
     elif np.contains('you win a Booby Prize'):
         prize = np.search(r'<b>Your Prize - (.*?)</b>')[1]

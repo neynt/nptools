@@ -7,10 +7,8 @@ import lib
 def shrine():
     np = lib.NeoPage('/desert/shrine.phtml')
     np.post('/desert/shrine.phtml', 'type=approach')
-    if np.contains('shrine_win.gif'):
-        result = np.findall(r'<p>.*?<br clear="all">')[0]
-        result = re.search(r'<div align="center">(.*?)</form>', result)[1]
-        result = lib.strip_tags(result)
+    if np.contains('shrine_win.gif') or np.contains('shrine_scene.gif'):
+        result = lib.strip_tags(re.search(r'\n<p>.*?<br clear="all">')[0])
         print(f"Coltzan's Shrine: {result}")
     elif np.contains('Maybe you should wait a while'):
         print("Coltzan's Shrine: Already visited.")
