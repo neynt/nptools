@@ -26,17 +26,16 @@ def neoquest(once=False):
         hp_result = np.search(r'Health: <B>(\d+)</B>/(\d+)')
         hp = int(hp_result[1])
         hp_max = int(hp_result[2])
-        need_heal = hp_max - hp > 50
         print(f'Health: {hp}/{hp_max}')
         if np.contains('lupe_combat.gif'):
             moves = np.findall(r'''<A HREF="javascript:;" onClick="setdata\('(.*?)', (.*?)\); return false;">''')
-            if hp < 50 and ('item', '220004') in moves:
+            if hp < 80 and ('item', '220004') in moves:
                 np.post(path, 'fact=item', 'type=220004')
-            elif hp < 50 and ('item', '220003') in moves:
+            elif hp < 80 and ('item', '220003') in moves:
                 np.post(path, 'fact=item', 'type=220003')
-            elif hp < 50 and ('item', '220002') in moves:
+            elif hp < 80 and ('item', '220002') in moves:
                 np.post(path, 'fact=item', 'type=220002')
-            elif hp < 50 and ('item', '220001') in moves:
+            elif hp < 80 and ('item', '220001') in moves:
                 np.post(path, 'fact=item', 'type=220001')
             elif ('special', '4003') in moves:
                 np.post(path, 'fact=special', 'type=4003')
@@ -46,7 +45,7 @@ def neoquest(once=False):
                 np.post(path, 'fact=noop', 'type=0')
         elif np.contains('Leader Board'):
             if once: break
-            if hp_max - hp > 25:
+            if hp_max - hp > 50:
                 np.get(path, 'action=items')
                 np.get(path, 'action=items', 'useitemid=220001', 'do=use')
                 np.post(path)

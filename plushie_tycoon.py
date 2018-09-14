@@ -12,7 +12,7 @@ import lib
 # - You can hold 100 materials up to 150k COH; 250 after that.
 # - A factory of size s lets you work on 2s jobs at once.
 # - A warehouse of size 10-s loads j jobs in 20s + 2js minutes.
-# - A store of size s lets you sell 4s jobs at once (9 is unlimited)
+# - A store of size s lets you sell 400s plushies at once (9 is unlimited)
 # - 5 minutes shipping from warehouse to store.
 
 # Variable costs are:
@@ -20,8 +20,18 @@ import lib
 # - Labour (sort of)
 # - Shipping (278 NP / 100 plushies)
 
-# According to player guides, first 3 levels of first 3 upgrades and first 4
-# adverts is a good starting point for your store.
+# Wisdom from player guides:
+# - first 3 levels of first 3 upgrades and first 4 adverts is a good starting
+# point for your store
+# - should only bother with species of at least 4 cloth
+# - other than cloth, not worth using anything but the priciest materials
+#   - we will start by varying only species; then maybe see effect of different
+#   cloths.
+
+# Bottlenecks:
+# - Store has plushie limit of 400s. (Limits shipping from warehouse.)
+# - Warehouse space is unlimited!
+# - Factory has job limit of 2s. (Up to 18) (Limits creation of new jobs.)
 
 # name rolls complexity accessory
 species_data = '''
@@ -81,7 +91,10 @@ Ruki       5 10 a
 Ogrin      6 10 a
 '''.strip().splitlines()
 species_data = [tuple(l.split()) for l in species_data]
-species = [s[0] for s in species_data]
+cloths = dict((s[0], int(s[1])) for s in species_data)
+complexity = dict((s[0], int(s[2])) for s in species_data)
+accessorized = dict((s[0], s[3] == 'a') for s in species_data)
+all_species = [s[0] for s in species_data]
 
 def mkpath(suffix):
     return f'/games/tycoon/{suffix}'
@@ -114,20 +127,61 @@ def plushie_tycoon():
     cash = amt(np.search(r'Cash on Hand: (.*?) NP')[1])
     print(f'Cash on Hand: {cash}')
 
-    jobs_in_store = None
+    latest_price_by_species = {}
+    plushies_to_sell = None
+    jobs_to_sell = None
 
     if True:
         print('Plushie Tycoon: Checking on store.')
         np.get(path_store)
         np.get(path_store, 'Cat=0', 'invent=2')
-        tbl = np.search(r"<table width='75%'.*?>(.*?)</table>")[1]
-        inv = table_to_tuples(tbl)[1:]
-        jobs_in_store = len(inv)
-        print(f'Plushie Tycoon: Store has {jobs_in_store} jobs left to sell.')
+        tbl = np.search(r"<table width='75%'.*?>(.*?)</table>")
+        inv = []
+        past_sales = []
+        if tbl:
+            tbl = tbl[1]
+            inv = table_to_tuples(tbl)[1:]
+            plushies_to_sell = sum(int(x[4]) for x in inv)
+            jobs_to_sell = len(inv)
+        else:
+            plushies_to_sell = 0
+            jobs_to_sell = 0
+        print(f'Plushie Tycoon: Store has {plushies_to_sell} plushies over {jobs_to_sell} jobs left to sell.')
+        np.get(path_store, 'Cat=0', 'invent=1')
+        tbl = np.search(r"<table width='75%'.*?>(.*?)</table>")
+        if tbl:
+            tbl = tbl[1]
+            past_sales = table_to_tuples(tbl)[1:]
+        # TODO: Is inv in the correct order?
+        for x in past_sales + inv:
+            species = x[0]
+            price = int(x[2])
+            latest_price_by_species[species] = price
+        print(f'Plushie Tycoon: Latest prices: {latest_price_by_species}')
         np.get(path_store, 'Cat=2')
         size = int(np.search(r'You now have a size (\d+) store')[1])
         print(f'Plushie Tycoon: Store is size {size}')
 
+    if True:
+        print('Plushie Tycoon: Checking on warehouse.')
+        np.get(path_warehouse)
+        tbl = np.search(r"<table border='0' width='90%'.*?>(.*?)</table>")[1]
+        to_ship = table_to_tuples(tbl, raw=True)[2:-2]
+        args = []
+        for row in to_ship:
+            status = row[4]
+            if status == 'Loaded':
+                chkbox = row[5]
+                result = re.search(r"name='(.*?)' value='(.*?)'", chkbox)
+                name = result[1]
+                value = result[2]
+                args.append(f'{name}={value}')
+        if args:
+            print(f'Shipping {len(args)} orders to the warehouse.')
+            args.append('submit=Ship Plushies')
+            np.post(path_warehouse, *args)
+
+    num_factory_jobs = None
     if True:
         # Check status of jobs.
         # If less than 500 plushies remain, fire all workers.
@@ -136,9 +190,10 @@ def plushie_tycoon():
         np.get(path_factory, 'exist=1')
         tbl = np.search(r"<table border='0' width='70%'.*?>(.*?)</table>")[1]
         jobs = table_to_tuples(tbl)[1:-1]
-        plushies_left = sum(int(total) - int(done) for pet, total, done in jobs)
-        print(f'Plushie Tycoon: Factory has {plushies_left} plushies left to make.')
-        if plushies_left < 300:
+        num_factory_jobs = len(jobs)
+        num_plushies = sum(int(total) - int(done) for pet, total, done in jobs)
+        print(f'Plushie Tycoon: Factory has {num_plushies} plushies in {num_factory_jobs} jobs.')
+        if num_plushies < 300 or num_factory_jobs >= 5:
             np.get(path_factory, 'personnel=1')
             if np.contains('factory.phtml?personnel=2&fire=1'):
                 np.get(path_factory, 'personnel=2', 'fire=1')
@@ -166,7 +221,8 @@ def plushie_tycoon():
             else:
                 print('Plushie Tycoon: Already have workers.')
 
-    if False:
+    rois = []
+    if True:
         print('Plushie Tycoon: Checking on materials.')
         np.get(path_materials)
         np.get(path_materials, 'Cat=0')
@@ -189,27 +245,29 @@ def plushie_tycoon():
         inv = table_to_tuples(tbl)
         bag_price = amt(inv[-1][0])
 
-        total_price = 4*green_price + cotton_price + gem_price + bag_price
-        print(f'Total cost: {total_price}')
+        for s in all_species:
+            if cloths[s] < 4: continue
+            if not accessorized[s]: continue
+            cost = cloths[s] * green_price
+            cost += cotton_price
+            cost += bag_price
+            if accessorized[s]: cost += gem_price
+            total_cost = cost + 1000 + 278
+            last_price = latest_price_by_species.get(s)
+            if last_price:
+                revenue = 100 * last_price
+                profit = revenue - total_cost
+                roi = profit / total_cost
+                rois.append((s, roi))
+                print(f'100x{s: <12}: ROI {roi:.3f}; cost {total_cost}; last revenue {last_price * 100}; cloths {cloths[s]}')
+            else:
+                print(f'100x{s: <12}: ROI ?????. cost {total_cost}; cloths {cloths[s]}')
 
+    # Determine which kinds of plushies should be built, based on free space in
+    # the pipeline and profitability of each species.
+    # TODO: Also consider other materials used in plushies.
     if True:
-        print('Plushie Tycoon: Checking on warehouse.')
-        np.get(path_warehouse)
-        tbl = np.search(r"<table border='0' width='90%'.*?>(.*?)</table>")[1]
-        to_ship = table_to_tuples(tbl, raw=True)[2:-2]
-        args = []
-        for row in to_ship:
-            status = row[4]
-            if status == 'Loaded':
-                chkbox = row[5]
-                result = re.search(r"name='(.*?)' value='(.*?)'", chkbox)
-                name = result[1]
-                value = result[2]
-                args.append(f'{name}={value}')
-        if args:
-            print(f'Shipping {len(args)} orders to the warehouse.')
-            args.append('submit=Ship Plushies')
-            np.post(path_warehouse, *args)
+        rois.sort(key=lambda x:x[1], reverse=True)
 
 if __name__ == '__main__':
     plushie_tycoon()
