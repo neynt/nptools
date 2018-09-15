@@ -28,7 +28,8 @@ def grumpy_king():
         np.get(path)
         parts = np.findall(r'<div id="(.)p(\d+)Div">(.*?)</div>')
         params = make_params(parts, fixed_parts)
-        print(f'Grumpy King: Asking {params}')
+        params_hum = ' '.join(p.split('=')[1] for p in params)
+        print(f'Grumpy King: Asking: {params_hum}')
         np.post(path2, *params)
         result = np.search(r'''<div align='center'>(.*?)<br clear="all">''')[1]
         result = lib.strip_tags(result)

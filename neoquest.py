@@ -29,7 +29,9 @@ def neoquest(once=False):
         print(f'Health: {hp}/{hp_max}')
         if np.contains('lupe_combat.gif'):
             moves = np.findall(r'''<A HREF="javascript:;" onClick="setdata\('(.*?)', (.*?)\); return false;">''')
-            if hp < 80 and ('item', '220004') in moves:
+            if hp_max - hp > 60 and ('special', '200019') in moves:
+                np.post(path, 'fact=special', 'type=200019')
+            elif hp < 80 and ('item', '220004') in moves:
                 np.post(path, 'fact=item', 'type=220004')
             elif hp < 80 and ('item', '220003') in moves:
                 np.post(path, 'fact=item', 'type=220003')
@@ -45,9 +47,14 @@ def neoquest(once=False):
                 np.post(path, 'fact=noop', 'type=0')
         elif np.contains('Leader Board'):
             if once: break
-            if hp_max - hp > 50:
+            if hp_max - hp > 80:
                 np.get(path, 'action=items')
-                np.get(path, 'action=items', 'useitemid=220001', 'do=use')
+                if np.contains('220003&do=use'):
+                    np.get(path, 'action=items', 'useitemid=220003', 'do=use')
+                elif np.contains('220002&do=use'):
+                    np.get(path, 'action=items', 'useitemid=220002', 'do=use')
+                elif np.contains('220001&do=use'):
+                    np.get(path, 'action=items', 'useitemid=220001', 'do=use')
                 np.post(path)
             else:
                 movedir = next(move_dirs)

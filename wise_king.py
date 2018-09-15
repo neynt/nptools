@@ -14,7 +14,8 @@ def wise_king():
         np.get(path)
         parts = np.findall(r'<div id="(.)p(\d+)Div">(.*?)</div>')
         params = make_params(parts)
-        print(f'Wise King: Saying {params}')
+        params_hum = ' '.join(p.split('=')[1] for p in params)
+        print(f'Wise King: Saying: {params_hum}')
         np.post(path2, *params)
         if np.contains('you have already regaled'):
             print(f'Wise King: Already done.')

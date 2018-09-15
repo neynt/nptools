@@ -38,6 +38,7 @@ from grumpy_king import grumpy_king
 from wise_king import wise_king
 from plushie_tycoon import plushie_tycoon
 from battledome import battledome
+from kiko_pop import kiko_pop
 
 import lib
 import neotime
@@ -48,7 +49,7 @@ tasks = [
     ('anchor_management', anchor_management, daily(0)),
     ('apple_bobbing', apple_bobbing, daily(0)),
     ('bank_interest', bank_interest, daily(0)),
-    ('clean inventory', lambda:lib.inv.deposit_all_items(exclude=['Two Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
+    ('clean inventory', lambda:lib.inv.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
     ('council_chamber', council_chamber, daily(0)),
     ('deserted_tomb', deserted_tomb, daily(0)),
     ('faerie_caverns', faerie_caverns, daily(0)),
@@ -73,6 +74,7 @@ tasks = [
     ('wise_king', wise_king, neotime.skip_lunch(daily(0))),
     ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
     ('battledome', battledome, daily(30)),
+    ('kiko_pop', kiko_pop, daily(0)),
 ]
 
 # Prints seconds as "1d12h34m56.7s"

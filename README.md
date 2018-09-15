@@ -15,10 +15,16 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 
 ## TODO
 
+### Technical
+
+- Read (and write??) cookies from (and to???) an actual browser. Chrome stores
+  cookies in an sqlite database so this should actually be quite doable.
+
+### Site activities
+
 - Food club (depends on age of account; avg. 30-50k/day)
 - Negg Cave (interesting puzzle)
 - Plushie Tycoon (320k/month)
-- Battledome (codestones, food, and 1500NP/day)
 - Wishing Well (small chance of 300k-600k)
 - Sakhmet Solitaire (5k/day)
 - Faerieland jobs (~5-10k/day)
@@ -30,7 +36,6 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 - Go go go
 - Godori
 - Krawps
-- Kiko Pop
 - Wheels
 - Neggsweeper (3k/day)
 - NeoPoker

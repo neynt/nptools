@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+import random
 import re
 
 import lib
+from lib import amt
 
 # Important facts
 # - The flow of a plushie is materials→factory→warehouse→store
@@ -99,9 +101,6 @@ all_species = [s[0] for s in species_data]
 def mkpath(suffix):
     return f'/games/tycoon/{suffix}'
 
-def amt(x):
-    return int(x.split()[0].replace(',', ''))
-
 path = mkpath('index.phtml')
 path_factory = mkpath('factory.phtml')
 path_store = mkpath('store.phtml')
@@ -109,15 +108,6 @@ path_materials = mkpath('materials.phtml')
 path_workers_hire = mkpath('workers_hire.phtml')
 path_process_hire = mkpath('process_hire.phtml')
 path_warehouse = mkpath('warehouse.phtml')
-
-def table_to_tuples(tbl, raw=False):
-    result = []
-    trs = re.findall(r'<tr.*?>(.*?)</tr>', tbl, flags=re.DOTALL)
-    for i,tr in enumerate(trs):
-        tds = re.findall(r'<td.*?>(.*?)</td>', tr, flags=re.DOTALL)
-        tds = tuple(tds) if raw else tuple(map(lib.strip_tags, tds))
-        result.append(tds)
-    return result
 
 # Plays Plushie Tycoon.
 # Currently just does housecleaning, but the goal is that it eventually plays
@@ -140,8 +130,8 @@ def plushie_tycoon():
         past_sales = []
         if tbl:
             tbl = tbl[1]
-            inv = table_to_tuples(tbl)[1:]
-            plushies_to_sell = sum(int(x[4]) for x in inv)
+            inv = lib.table_to_tuples(tbl)[1:]
+            plushies_to_sell = sum(int(x[1]) - int(x[4]) for x in inv)
             jobs_to_sell = len(inv)
         else:
             plushies_to_sell = 0
@@ -151,7 +141,7 @@ def plushie_tycoon():
         tbl = np.search(r"<table width='75%'.*?>(.*?)</table>")
         if tbl:
             tbl = tbl[1]
-            past_sales = table_to_tuples(tbl)[1:]
+            past_sales = lib.table_to_tuples(tbl)[1:]
         # TODO: Is inv in the correct order?
         for x in past_sales + inv:
             species = x[0]
@@ -166,7 +156,7 @@ def plushie_tycoon():
         print('Plushie Tycoon: Checking on warehouse.')
         np.get(path_warehouse)
         tbl = np.search(r"<table border='0' width='90%'.*?>(.*?)</table>")[1]
-        to_ship = table_to_tuples(tbl, raw=True)[2:-2]
+        to_ship = lib.table_to_tuples(tbl, raw=True)[2:-2]
         args = []
         for row in to_ship:
             status = row[4]
@@ -189,20 +179,11 @@ def plushie_tycoon():
         print('Plushie Tycoon: Checking on factory.')
         np.get(path_factory, 'exist=1')
         tbl = np.search(r"<table border='0' width='70%'.*?>(.*?)</table>")[1]
-        jobs = table_to_tuples(tbl)[1:-1]
+        jobs = lib.table_to_tuples(tbl)[1:-1]
         num_factory_jobs = len(jobs)
         num_plushies = sum(int(total) - int(done) for pet, total, done in jobs)
         print(f'Plushie Tycoon: Factory has {num_plushies} plushies in {num_factory_jobs} jobs.')
-        if num_plushies < 300 or num_factory_jobs >= 5:
-            np.get(path_factory, 'personnel=1')
-            if np.contains('factory.phtml?personnel=2&fire=1'):
-                np.get(path_factory, 'personnel=2', 'fire=1')
-                if np.contains('fire_all=1'):
-                    np.get(path_factory, 'fire_all=1')
-                    print('Plushie Tycoon: Fired all workers.')
-            else:
-                print('Plushie Tycoon: Already fired all workers.')
-        else:
+        if num_plushies > 400 or num_factory_jobs >= 5:
             np.get(path_factory, 'personnel=1')
             if np.contains('many unemployed pets'):
                 # Use the default workforce
@@ -220,6 +201,15 @@ def plushie_tycoon():
                 #print('Plushie Tycoon: Hired up to 250 Trainees and 25 Managers.')
             else:
                 print('Plushie Tycoon: Already have workers.')
+        else:
+            np.get(path_factory, 'personnel=1')
+            if np.contains('factory.phtml?personnel=2&fire=1'):
+                np.get(path_factory, 'personnel=2', 'fire=1')
+                if np.contains('fire_all=1'):
+                    np.get(path_factory, 'fire_all=1')
+                    print('Plushie Tycoon: Fired all workers.')
+            else:
+                print('Plushie Tycoon: Already fired all workers.')
 
     rois = []
     if True:
@@ -227,47 +217,89 @@ def plushie_tycoon():
         np.get(path_materials)
         np.get(path_materials, 'Cat=0')
         tbl = np.search(r"<table width='80%'.*?>(.*?)</table>")[1]
-        inv = table_to_tuples(tbl)
+        inv = lib.table_to_tuples(tbl)
         green_price = amt(inv[-1][3])
 
         np.get(path_materials, 'Cat=1')
         tbl = np.search(r"<table width='80%'.*?>(.*?)</table>")[1]
-        inv = table_to_tuples(tbl)
+        inv = lib.table_to_tuples(tbl)
         cotton_price = amt(inv[-1][0])
 
         np.get(path_materials, 'Cat=2')
         tbl = np.search(r"<table width='80%'.*?>(.*?)</table>")[1]
-        inv = table_to_tuples(tbl)
+        inv = lib.table_to_tuples(tbl)
         gem_price = amt(inv[-1][0])
 
         np.get(path_materials, 'Cat=3')
         tbl = np.search(r"<table width='80%'.*?>(.*?)</table>")[1]
-        inv = table_to_tuples(tbl)
+        inv = lib.table_to_tuples(tbl)
         bag_price = amt(inv[-1][0])
 
         for s in all_species:
-            if cloths[s] < 4: continue
+            if cloths[s] < 3: continue
             if not accessorized[s]: continue
             cost = cloths[s] * green_price
             cost += cotton_price
             cost += bag_price
             if accessorized[s]: cost += gem_price
-            total_cost = cost + 1000 + 278
+            total_cost = cost + 500 + 278
             last_price = latest_price_by_species.get(s)
             if last_price:
                 revenue = 100 * last_price
                 profit = revenue - total_cost
                 roi = profit / total_cost
-                rois.append((s, roi))
-                print(f'100x{s: <12}: ROI {roi:.3f}; cost {total_cost}; last revenue {last_price * 100}; cloths {cloths[s]}')
+                rois.append((s, total_cost, roi))
             else:
-                print(f'100x{s: <12}: ROI ?????. cost {total_cost}; cloths {cloths[s]}')
+                rois.append((s, total_cost, None))
 
     # Determine which kinds of plushies should be built, based on free space in
     # the pipeline and profitability of each species.
     # TODO: Also consider other materials used in plushies.
     if True:
-        rois.sort(key=lambda x:x[1], reverse=True)
+        rois.sort(key=lambda x:x[-1] or -9999.9, reverse=True)
+        for s, total_cost, roi in rois:
+            last_price = latest_price_by_species.get(s)
+            roi_ = f'{roi:+.3f}' if roi else '??????'
+            print(f'100x{s: <12} ({cloths[s]}): ROI {roi_}; cost {total_cost}; last rev {last_price}')
+        jobs = []
+        num_jobs_to_make = 18 - num_factory_jobs
+        np_left = cash - 14000
+        while np_left > 0 and num_jobs_to_make > 0:
+            s, total_cost, roi = random.choice(rois)
+            if random.random() < 0.5:
+                # Exploit. Pick a random species whose ROI is at least 66% of
+                # the best one, weighted heavily towards higher ROIs.
+                k = 0
+                for _, _, roi in rois:
+                    if roi and roi > rois[0][2] * 0.7: k += 1
+                    if random.random() < 0.5: break
+                if k > 0:
+                    s, total_cost, roi = rois[random.randint(0, k-1)]
+            else:
+                # Explore. Pick a random species, weighing high-ROI species
+                # slightly higher. Unknown ROIs are treated as if they had an
+                # ROI of +100%.
+                weights = [2.0**(roi or 1.0) for _, _, roi in rois]
+                total_weight = sum(weights)
+                weights = [w / total_weight for w in weights]
+                cumul_weights = [weights[0]]
+                for w in weights[1:]:
+                    cumul_weights.append(w + cumul_weights[-1])
+                r = random.random()
+                # This is O(n) and could be O(log n) but I can't be bothered.
+                for i, w in enumerate(cumul_weights):
+                    if w < r:
+                        s, total_cost, roi = rois[i]
+                        break
+            np_left -= total_cost
+            num_jobs_to_make -= 1
+            if np_left > 0 and num_jobs_to_make > 0:
+                jobs.append(s)
+
+        print(f'Recommended jobs: 100x{jobs}')
+        n_cloths = sum(cloths[s] for s in jobs)
+        n_other = len(jobs)
+        print(f'Goods needed: {n_cloths} cloth, {n_other} other.')
 
 if __name__ == '__main__':
     plushie_tycoon()

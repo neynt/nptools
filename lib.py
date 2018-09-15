@@ -6,11 +6,23 @@ import re
 import sqlite3
 import time
 
+def amt(x):
+    return int(x.split()[0].replace(',', ''))
+
 def strip_tags(text):
     return ' '.join([t.strip() for t in re.split(r'<.*?>', text) if t.strip()])
 
 def dict_to_eq_pairs(kwargs):
     return [f'{k}={v}' for k, v in kwargs.items()]
+
+def table_to_tuples(tbl, raw=False):
+    result = []
+    trs = re.findall(r'<tr.*?>(.*?)</tr>', tbl, flags=re.DOTALL)
+    for i,tr in enumerate(trs):
+        tds = re.findall(r'<td.*?>(.*?)</td>', tr, flags=re.DOTALL)
+        tds = tuple(tds) if raw else tuple(map(strip_tags, tds))
+        result.append(tds)
+    return result
 
 class NotLoggedInError(Exception):
     pass
@@ -146,6 +158,63 @@ class ItemDb:
         result = c.execute(q, args)
         self.conn.commit()
         return result
+
+    def update_prices(self, item_name):
+        char_groups = 'an0 bo1 cp2 dq3 er4 fs5 gt6 hu7 iv8 jw9 kx_ ly mz'.split()
+        c2g = dict(sum(([(c, i) for c in cs] for i, cs in enumerate(char_groups)), []))
+        markets = {}
+
+        np = NeoPage('/market.phtml?type=wizard')
+        opts = []
+        opts.append('type=process_wizard')
+        opts.append('feedset=0')
+        opts.append(f'shopwizard={item_name}')
+        opts.append('table=shop')
+        opts.append('criteria=exact')
+        opts.append('min_price=0')
+        opts.append('max_price=999999')
+        #while len(markets) < len(char_groups):
+        while len(markets) < 2:
+            print(f'{len(markets)}/{len(char_groups)}')
+            np.post('/market.phtml', *opts)
+            tbl = np.search(r'<table width="600".*?>(.*?)</table>')[1]
+            rows = table_to_tuples(tbl, raw=True)[1:]
+            g = c2g[rows[0][0][0]]
+            market_data = []
+            for owner, item, stock, price in rows:
+                result = re.search(r'<a href="(.*?)"><b>(.*?)</b></a>', owner)
+                link = result[1]
+                owner = result[2]
+                result = re.search(r'href="/browseshop.phtml?owner=(.*?)&buy_obj_info_id=(.*?)&buy_cost_neopoints=(.*?)"', link)
+                obj_info_id = result[2]
+                market_data.append((price, owner, link, obj_info_id))
+            markets[g] = rows
+
+        return markets
+    
+    def get_price(self, item_name, item_image=None):
+        c = self.conn.cursor()
+        results = None
+        if item_image:
+            c.execute('''
+            SELECT image, price FROM items
+            WHERE name = ?
+            ''', (item_name,))
+            results = c.fetchall()
+        else:
+            c.execute('''
+            SELECT image, price FROM items
+            WHERE name = ? AND image = ?
+            ''', (item_name, item_image))
+            results = c.fetchall()
+        if len(results) > 1:
+            print(f'Warning: More than one item with name {item_name}.')
+        ret = {}
+        if not all(price for image, price in results):
+            self.update_prices(item_name)
+            return self.get_price(item_name, item_image=item_image)
+        for image, price in results:
+            ret[image] = price
 
 item_db = ItemDb('itemdb.db')
 item_db.init_schema()

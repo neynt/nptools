@@ -14,6 +14,10 @@ path_fight = '/dome/fight.phtml'
 path_start_fight = '/dome/ajax/startFight.php'
 path_arena = '/dome/arena.phtml'
 path_arena_ajax = '/dome/ajax/arena.php'
+npc_id = 31 # Chia Clown
+npc_id = 218 # Amateur Insider
+npc_id = 206 # S750 Kreludan Defender Robot
+toughness = 2
 
 def battledome(forever = False):
     np = lib.NeoPage(path)
@@ -21,14 +25,13 @@ def battledome(forever = False):
     neopoints_left = True
     prizes_left = True
     while prizes_left or forever:
-        # Fights the Chia Clown on easy
         battle_id = None
         if np.contains('battleid:'):
             print('Battledome: Already in fight.')
             battle_id = np.search(r"battleid:'(\d+)',")[1]
         else:
             print('Battledome: Starting fight.')
-            np.post(path_start_fight, 'type=2', f'pet={PET_NAME}', 'npcId=31', 'toughness=1')
+            np.post(path_start_fight, 'type=2', f'pet={PET_NAME}', f'npcId={npc_id}', f'toughness={toughness}')
             battle = json.loads(np.content)
             if not battle['success']:
                 print('Battledome: Error.')
@@ -68,8 +71,8 @@ def battledome(forever = False):
             np.set_referer_path(path_arena)
             np.post(path_arena_ajax, *opts)
             resp = json.loads(np.content)
-            if resp['battle']['prizes']:
-                prizes = ', '.join(x['name'] for x in resp['battle']['prizes'])
+            if resp['battle']['prizes'] or 'prize_messages' in resp['battle']:
+                prizes = ', '.join(x['name'] for x in resp['battle']['prizes']) or "nothing"
                 print(f'Battledome: Won {prizes}')
                 if 'prize_messages' in resp['battle']:
                     prize_messages = resp['battle']['prize_messages']
