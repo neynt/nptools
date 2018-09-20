@@ -19,17 +19,19 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 
 - Read (and write??) cookies from (and to???) an actual browser. Chrome stores
   cookies in an sqlite database so this should actually be quite doable.
+  - Update: It's encrypted so maybe it's not super easy.
+- Maintain our own item database with prices using the shop wizard
 
 ### Site activities
 
 - Food club (depends on age of account; avg. 30-50k/day)
 - Negg Cave (interesting puzzle)
-- Plushie Tycoon (320k/month)
 - Wishing Well (small chance of 300k-600k)
 - Sakhmet Solitaire (5k/day)
 - Faerieland jobs (~5-10k/day)
 - Cliffhanger (1500 NP/day)
 - Scarab 21 (5k/day)
+- NeoQuest II
 - Cheat
 - Sewage Surfer
 - Shapeshifter

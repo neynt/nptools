@@ -6,11 +6,11 @@ import re
 import sqlite3
 import time
 
-def amt(x):
-    return int(x.split()[0].replace(',', ''))
-
 def strip_tags(text):
     return ' '.join([t.strip() for t in re.split(r'<.*?>', text) if t.strip()])
+
+def amt(x):
+    return int(strip_tags(x).split()[0].replace(',', ''))
 
 def dict_to_eq_pairs(kwargs):
     return [f'{k}={v}' for k, v in kwargs.items()]
@@ -234,7 +234,6 @@ class Inventory:
             item_image = attr[3]
             item_desc = attr[4]
             item_name = attr[7]
-            print(f'{item_id}: {item_name} ({item_image})')
 
             item_db.query('''
             INSERT INTO items (name,image,desc,last_updated)
@@ -255,7 +254,6 @@ class Inventory:
             args.append(f'id_arr[{idx}]={item_id}')
             if name not in exclude:
                 args.append(f'radio_arr[{idx}]=deposit')
-        print(args)
         self.np.post('/process_quickstock.phtml', *args)
 
     def ensure_np(self, amount):

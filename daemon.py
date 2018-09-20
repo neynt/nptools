@@ -39,6 +39,8 @@ from wise_king import wise_king
 from plushie_tycoon import plushie_tycoon
 from battledome import battledome
 from kiko_pop import kiko_pop
+from magma_pool import magma_pool
+from scratchcard import buy_scratchcard
 
 import lib
 import neotime
@@ -75,6 +77,8 @@ tasks = [
     ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
     ('battledome', battledome, daily(30)),
     ('kiko_pop', kiko_pop, daily(0)),
+    ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
+    #('magma_pool', magma_pool, neotime.after(minutes=4)),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
