@@ -6,3 +6,4 @@ pages
 nptools.cookies
 *.log
 *.pickle
+*.db
