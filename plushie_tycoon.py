@@ -114,7 +114,7 @@ path_warehouse = mkpath('warehouse.phtml')
 
 def check_store(np):
     #print('Plushie Tycoon: Checking on store.')
-    latest_price_by_species = {}
+    species_stats = {}
     np.get(path_store)
     np.get(path_store, 'Cat=0', 'invent=2')
     tbl = np.search(r"<table width='75%'.*?>(.*?)</table>")
@@ -135,13 +135,28 @@ def check_store(np):
         tbl = tbl[1]
         past_sales = lib.table_to_tuples(tbl)[1:]
     # TODO: Is inv in the correct order?
-    for x in past_sales + inv:
-        species = x[0]
-        price = int(x[2])
-        latest_price_by_species[species] = price
+    prices = defaultdict(list)
+    for row in past_sales + inv:
+        species = row[0]
+        price = int(row[2])
+        prices[species].append(price)
+    for species in prices.keys():
+        ps = prices[species]
+        n = len(ps)
+        last = ps[-1]
+        avg = sum(ps) / n
+        stdev = (sum((p - avg)**2 for p in ps) / n)**0.5
+        species_stats[species] = {
+            'last': last,
+            'min': min(ps),
+            'max': max(ps),
+            'avg': avg,
+            'median': ps[len(ps) // 2],
+            'stdev': stdev,
+        }
     #np.get(path_store, 'Cat=2')
     #size = int(np.search(r'You now have a size (\d+) store')[1])
-    return latest_price_by_species
+    return species_stats
 
 def check_warehouse(np):
     #print('Plushie Tycoon: Checking on warehouse.')
@@ -239,7 +254,7 @@ def check_materials(np):
                     accessories_owned[s] += amt(quant)
     return material_prices, material_owned, accessories_owned, buy_links
 
-def calculate_rois(material_prices, latest_price_by_species):
+def calculate_rois(material_prices, species_stats):
     rois = []
     green_price = material_prices[0][3]
     cotton_price = material_prices[1][0]
@@ -254,8 +269,9 @@ def calculate_rois(material_prices, latest_price_by_species):
         cost += bag_price
         if accessorized[s]: cost += gem_price
         total_cost = cost + 500 + 278
-        last_price = latest_price_by_species.get(s)
-        if last_price:
+        stats = species_stats.get(s)
+        if stats:
+            last_price = stats['last']
             revenue = 100 * last_price
             profit = revenue - total_cost
             roi = profit / total_cost
@@ -289,7 +305,7 @@ def pick_plushies(cash, rois, accessories_owned, num_jobs):
         if num_jobs <= 0: break
 
     while np_left > 0 and num_jobs > 0:
-        # This is O(n) and could be O(log 0.0, n) but I can't be bothered.
+        # This is O(n) and could be O(log n) but I can't be bothered.
         r = random.random()
         for i, cw in enumerate(cumul_weights):
             if r < cw:
@@ -375,20 +391,21 @@ def plushie_tycoon(details=False):
     cash = amt(np.search(r'Cash on Hand: (.*?) NP')[1])
     print(f'Cash on Hand: {cash}')
 
-    latest_price_by_species = check_store(np)
+    species_stats = check_store(np)
     check_warehouse(np)
     num_factory_jobs = check_factory(np, hire=True)
     material_prices, material_owned, accessories_owned, buy_links = check_materials(np)
-    rois = calculate_rois(material_prices, latest_price_by_species)
+    rois = calculate_rois(material_prices, species_stats)
 
     # Determine which kinds of plushies should be built, based on free space in
     # the factory and profitability of each species.
     # TODO: Also consider other materials used in plushies.
-    for s, total_cost, roi in rois:
-        last_price = latest_price_by_species.get(s)
-        roi_ = f'{roi:+.3f}' if roi else '??????'
-        if details:
-            print(f'100x{s: <12} ({cloths[s]}): ROI {roi_}; cost {total_cost}; last rev {last_price}')
+    if details:
+        print(f'{"Species (cloths)": <21} {"roi": <6} {"cost": <5} {"lst": <3} {"range": <7} {"avg": <6} {"med": <3} {"stdev": <6}')
+        for s, total_cost, roi in rois:
+            stats = species_stats.get(s)
+            roi_ = f'{roi:+.3f}' if roi else '??????'
+            print(f'100x{s: <12} ({cloths[s]}): {roi_} {total_cost: >5} {stats["last"]: >3} {stats["min"]: >3}-{stats["max"]: >3} {stats["avg"]: >6.2f} {stats["median"]: >3} {stats["stdev"]: >6.3f}')
 
     num_jobs = 18 - num_factory_jobs
     jobs = pick_plushies(cash, rois, accessories_owned, num_jobs)

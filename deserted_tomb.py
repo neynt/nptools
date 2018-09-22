@@ -16,7 +16,7 @@ def deserted_tomb():
         else:
             print('Deserted tomb: Got item, could not find image. TODO')
     elif np.contains('EUREKA!'):
-        prize = np.search(r'<strong>(.*?)</strong> <strong>Neopoints</strong>')[1]
+        prize = np.search(r'You also stuff <strong>(.*?)</strong> <strong>Neopoints</strong> in your pockets')[1]
         prize = int(prize.replace(',', ''))
         print(f'Deserted tomb: Found treasure! Got items and {prize} NP.')
     elif np.contains('FIDDLESTICKS!'):

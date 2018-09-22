@@ -226,7 +226,14 @@ Your Neopet will need a mint after eating a chili cheese dog with onions
 Your pet deserves a nice stay at the Neolodge
 '''.strip().splitlines()
 
-template = input()
-for sentence in sentences:
-    if re.match(template, sentence):
-        print(sentence)
+def solve(template):
+    for sentence in sentences:
+        if re.match(template, sentence):
+            print(sentence)
+
+def cliffhanger():
+    pass
+
+if __name__ == '__main__':
+    solve(input())
+    #cliffhanger()

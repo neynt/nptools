@@ -42,7 +42,6 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 - Neggsweeper (3k/day)
 - NeoPoker
   - full house: 100NP
-- Scratchcards
 - Turmaculus
 - Restocking
 - Monthly freebies: http://www.neopets.com/freebies/index.phtml
@@ -56,4 +55,4 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 - Mystery pic (really interesting automation problem)
 - Lottery (avatar, and slightly +EV (more if you pick numbers other people don't))
 - Fetch (maze solving with hidden information)
-- Qaalan Expellibox (chance of NC every 8 hours)
+- Qasalan Expellibox (chance of NC every 8 hours)

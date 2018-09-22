@@ -16,7 +16,7 @@ path_arena = '/dome/arena.phtml'
 path_arena_ajax = '/dome/ajax/arena.php'
 npc_id = 31 # Chia Clown
 #npc_id = 218 # Amateur Insider
-npc_id = 206 # S750 Kreludan Defender Robot
+#npc_id = 206 # S750 Kreludan Defender Robot
 toughness = 2
 
 def battledome(forever = False):
@@ -82,6 +82,9 @@ def battledome(forever = False):
                         neopoints_left = False
                     print(f'Battledome: {prize_messages}')
                 break
+            # TODO: Detect defeat.
+            elif step > 5:
+                print(f'Battledome: Took more than 5 steps. Something went wrong.')
 
 if __name__ == '__main__':
     battledome(True)
