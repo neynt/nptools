@@ -1,6 +1,6 @@
 # nptools
 
-illicit automations for neopets.
+Illicit automations for neopets.
 
 ## Quick start
 
@@ -11,19 +11,15 @@ NP_USER='username'
 NP_PASS='password'
 ```
 
-in a file called .env in this directory. Then run `./daemon.sh`.
+in a file called .env in this directory. Then run `./run.sh daemon.py`.
+
+Additional flags include `USER_AGENT` and `FIREFOX_COOKIES_DB`.
 
 ## TODO
 
-### Technical
-
-- Read (and write??) cookies from (and to???) an actual browser. Chrome stores
-  cookies in an sqlite database so this should actually be quite doable.
-  - Update: It's encrypted so maybe it's not super easy.
-- Maintain our own item database with prices using the shop wizard
-
 ### Site activities
 
+- Restocking (extraordinarily lucrative)
 - Food club (depends on age of account; avg. 30-50k/day)
 - Negg Cave (interesting puzzle)
 - Wishing Well (small chance of 300k-600k)
@@ -43,7 +39,6 @@ in a file called .env in this directory. Then run `./daemon.sh`.
 - NeoPoker
   - full house: 100NP
 - Turmaculus
-- Restocking
 - Monthly freebies: http://www.neopets.com/freebies/index.phtml
 - Potato counter
 - Meteor crash site

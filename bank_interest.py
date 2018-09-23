@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import lib
 
 def bank_interest():

@@ -6,7 +6,7 @@ import time
 
 import lib
 
-# TODO: Autodetect these.
+# TODO: Autodetect this.
 PET_NAME = os.environ['PET_NAME']
 
 path = '/dome/'

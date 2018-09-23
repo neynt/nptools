@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from collections import defaultdict, Counter
+import bisect
 import random
 import re
 
@@ -285,7 +286,6 @@ def calculate_rois(material_prices, species_stats):
 def pick_plushies(cash, rois, accessories_owned, num_jobs):
     jobs = []
     np_left = cash - 30000
-    s, total_cost, roi = random.choice(rois)
     # Pick a random species, weighing high-ROI species higher. Unknown
     # ROIs are treated as if they had an ROI of +100%.
     weights = [20.0**max(0.0, roi or 1.0) for _, _, roi in rois]
@@ -296,27 +296,26 @@ def pick_plushies(cash, rois, accessories_owned, num_jobs):
         cumul_weights.append(w + cumul_weights[-1])
 
     # Create jobs that will use existing accessories
+    max_cost = max(total_cost for _, total_cost, _ in rois)
+    rec_job_size = max(1, min(2, np_left // max_cost // 2))
+
     for s, n in accessories_owned.items():
-        for _ in range(n):
-            jobs.append(s)
-            np_left -= 2000
-            num_jobs -= 1
-            if num_jobs <= 0: break
-        if num_jobs <= 0: break
+        for i in range(0, n, rec_job_size):
+            job_size = min(rec_job_size, n - i)
+            jobs.append((s, job_size))
+            np_left -= 5000 * job_size
+            if len(jobs) >= num_jobs: break
+        if len(jobs) >= num_jobs: break
 
-    while np_left > 0 and num_jobs > 0:
-        # This is O(n) and could be O(log n) but I can't be bothered.
+    while np_left > 0 and len(jobs) < num_jobs:
+        s, total_cost, roi = random.choice(rois)
         r = random.random()
-        for i, cw in enumerate(cumul_weights):
-            if r < cw:
-                s, total_cost, roi = rois[i]
-                break
-        np_left -= total_cost
-        num_jobs -= 1
-        if np_left >= 0 and num_jobs >= 0:
-            jobs.append(s)
+        i = bisect.bisect_left(cumul_weights, r)
+        s, total_cost, roi = rois[i]
+        np_left -= total_cost * rec_job_size
+        if np_left > 0 and len(jobs) < num_jobs:
+            jobs.append((s, rec_job_size))
 
-    jobs.sort()
     return jobs
 
 def buy_materials_up_to(np, amounts, buy_links,
@@ -354,7 +353,7 @@ def buy_materials_up_to(np, amounts, buy_links,
             material_owned[cat][item] += amt_to_buy
 
 def start_jobs(np, jobs):
-    for s in jobs:
+    for s, qty in jobs:
         np.get(path_factory, 'start=1')
         np.post(path_factory, f'pickpet={s}')
         if np.contains('increase the size of your factory'):
@@ -377,11 +376,11 @@ def start_jobs(np, jobs):
         args.append(f'submitjob={submit_job}')
         np.post(path_factory, *args)
         args = []
-        args.append('qnt_to_make=1')
+        args.append(f'qnt_to_make={qty}')
         for name, value in np.findall(r"<input type='hidden' name='(.*?)' value='(.*?)'>"):
             args.append(f'{name}={value}')
+        print(f'Plushie Tycoon: Starting job for {qty}00x{s}')
         np.post(path_factory, *args)
-        print(f'Plushie Tycoon: Starting job for 100x{s}')
 
 # Plays Plushie Tycoon.
 # Currently just does housecleaning, but the goal is that it eventually plays
@@ -409,17 +408,34 @@ def plushie_tycoon(details=False):
 
     num_jobs = 18 - num_factory_jobs
     jobs = pick_plushies(cash, rois, accessories_owned, num_jobs)
-    if jobs:
-        accessory_species = Counter(jobs)
-        print(f'Recommended jobs: {accessory_species}')
-        n_cloths = sum(cloths[s] for s in jobs)
-        n_other = len(jobs)
+    jobs_chunked = []
+    cur_chunk = []
+    total_inv_slots = 0
+    for s, qty in jobs:
+        inv_slots = qty * (cloths[s] + 3)
+        if inv_slots + total_inv_slots > 100:
+            jobs_chunked.append(cur_chunk)
+            cur_chunk = []
+            total_inv_slots = 0
+        cur_chunk.append((s, qty))
+        total_inv_slots += inv_slots
+    if cur_chunk: jobs_chunked.append(cur_chunk)
+    print(f'Chunks: {jobs_chunked}')
+    for job_chunk in jobs_chunked:
+        print(f'Building job chunk {job_chunk}')
+        accessory_species = defaultdict(int)
+        for s, qty in job_chunk:
+            accessory_species[s] += qty
+        n_cloths = sum(qty * cloths[s] for s, qty in job_chunk)
+        n_other = sum(qty for s, qty in job_chunk)
         print(f'Goods needed: {n_cloths} cloth, {n_other} other.')
+        # TODO: Do something better than re-checking this.
+        material_prices, material_owned, accessories_owned, buy_links = check_materials(np)
         buy_materials_up_to(np, [n_cloths, n_other, n_other, n_other],
             buy_links, material_prices, material_owned,
             accessories_owned, accessory_species)
-        start_jobs(np, jobs)
-        check_factory(np, hire=True)
+        start_jobs(np, job_chunk)
+    check_factory(np, hire=True)
 
 if __name__ == '__main__':
     plushie_tycoon(True)

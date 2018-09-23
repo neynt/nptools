@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import time
 import json
 
@@ -11,7 +9,6 @@ def trudys_surprise():
         print("Trudy's Surprise: Already done.")
         return
     else:
-        # TODO test
         np.get('/trudys_surprise.phtml')
         np.post('/trudydaily/ajax/claimprize.php', 'action=beginroll')
         result = json.loads(np.content)

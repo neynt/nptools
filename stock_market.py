@@ -1,9 +1,8 @@
-#!/usr/bin/env python3
-
 import re
 from collections import defaultdict
 
 import lib
+import inventory
 
 def stock_market():
     np = lib.NeoPage()
@@ -51,6 +50,9 @@ def stock_market():
             # each stock. For example, if BUZZ and FISH are the stocks trading
             # at 15 and you currently own 1500 BUZZ and 2000 FISH, we will buy
             # 750 BUZZ and 250 FISH to put them both at 2250.
+            # TODO: This was cool to figure out but simply buying 1000 of the
+            # stock you have the least of would result in roughly the same
+            # thing in the long run. Maybe we should just do that.
             to_buy = stocks_by_price[price]
             to_buy_by_owned = sorted(to_buy, key=lambda x:owned_stocks[x])
             to_buy_amt = {x:0 for x in to_buy}
@@ -73,7 +75,7 @@ def stock_market():
                 to_buy_amt[sym] += quant
 
             print(f'Stock Market: Will buy {to_buy_amt} @{price}.')
-            lib.inv.ensure_np(price * 1000)
+            inventory.ensure_np(price * 1000)
 
             for sym, amt in to_buy_amt.items():
                 if amt == 0: continue

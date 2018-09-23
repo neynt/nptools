@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# Plays Neopets in the background for you.
+
+import random
 import pycurl
 import atexit
 import datetime
@@ -43,41 +45,61 @@ from magma_pool import magma_pool
 from scratchcard import buy_scratchcard
 
 import lib
+import item_db
+import inventory
 import neotime
 from neotime import daily, now_nst
 
+def appraise_item():
+    items = item_db.query('SELECT name FROM items WHERE price IS NULL').fetchall()
+    items = sum((list(x) for x in items), [])
+    if items:
+        item = random.choice(items)
+        print(f'Learning about {item}')
+        item_db.update_prices(item)
+
 # List[Tuple[String, Callable[[], None], Callable[[datetime], Optional[datetime]]]]
 tasks = [
+    # Dailies
     ('anchor_management', anchor_management, daily(0)),
     ('apple_bobbing', apple_bobbing, daily(0)),
     ('bank_interest', bank_interest, daily(0)),
-    ('clean inventory', lambda:lib.inv.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
     ('council_chamber', council_chamber, daily(0)),
     ('deserted_tomb', deserted_tomb, daily(0)),
     ('faerie_caverns', faerie_caverns, daily(0)),
-    ('fishing', fishing, neotime.after(hours=2)),
     ('forgotten_shore', forgotten_shore, daily(0)),
     ('fruit_machine', fruit_machine, daily(0)),
-    ('healing_springs', healing_springs, neotime.after(minutes=35)),
+    ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(0))),
     ('jelly', jelly, daily(0)),
-    ('kacheek_seek', kacheek_seek, daily(30)),
+    ('kiko_pop', kiko_pop, daily(0)),
     ('lunar_temple', lunar_temple, daily(0)),
     ('omelette', omelette, daily(0)),
-    ('pirate_academy', pirate_academy, neotime.immediate),
     ('plushie', plushie, daily(0)),
-    ('pyramids', lambda:pyramids(True), daily(30)),
     ('rich_slorg', rich_slorg, daily(0)),
-    ('shrine', shrine, neotime.after(hours=12, minutes=1)),
-    ('snowager', snowager, neotime.next_snowager_time),
-    ('stock_market', stock_market, daily(15)),
     ('tombola', tombola, daily(0)),
     ('trudys_surprise', trudys_surprise, daily(0)),
-    ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(0))),
     ('wise_king', wise_king, neotime.skip_lunch(daily(0))),
-    ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
+
+    # Longer-running dailies that we do after normal dailies
+    ('stock_market', stock_market, daily(15)),
     ('battledome', battledome, daily(30)),
-    ('kiko_pop', kiko_pop, daily(0)),
+    ('kacheek_seek', kacheek_seek, daily(30)),
+    ('pyramids', lambda:pyramids(True), daily(30)),
+
+    # Multi-dailies
     ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
+    ('fishing', fishing, neotime.after(hours=2)),
+    ('healing_springs', healing_springs, neotime.after(minutes=35)),
+    ('shrine', shrine, neotime.after(hours=12, minutes=1)),
+    ('snowager', snowager, neotime.next_snowager_time),
+
+    # Housekeeping
+    ('clean inventory', lambda:inventory.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
+    ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
+    ('appraise_item', appraise_item, neotime.after(minutes=15)),
+    ('pirate_academy', pirate_academy, neotime.immediate),
+    
+    # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),
 ]
 

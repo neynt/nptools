@@ -3,4 +3,4 @@ set -o allexport
 source .env
 set +o allexport
 
-python3 daemon.py 2>&1
+python3 $@ 2>&1

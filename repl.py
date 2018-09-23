@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
-
 import datetime
 import random
 import re
 
 import daemon
 import lib
+import item_db
+import inventory
 
 np = lib.NeoPage()

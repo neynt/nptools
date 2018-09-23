@@ -9,11 +9,9 @@ path = '/games/neoquest/neoquest.phtml'
 movedir_cycle = [2,7]
 
 def cycle(seed):
-    n = len(seed)
-    i = 0
     while True:
-        yield seed[i]
-        i = (i + 1) % n
+        for elem in seed:
+            yield elem
 
 # Does not do all of Neoquest, unfortunately. Simply grinds by walking
 # in a cycle.

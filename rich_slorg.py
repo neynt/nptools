@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import lib
 
 path = '/shop_of_offers.phtml'
