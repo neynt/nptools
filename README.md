@@ -20,6 +20,17 @@ A lot of this code was written with assumptions that only hold true on my
 account (e.g. you only have one pet, for training). So run it at your own risk
 and maybe start the daemon with only a few safe dailies enabled first.
 
+Produced files include:
+
+```
+itemdb.db: sqlite3 database of Neopets items.
+daemon.pickle: pickled dict from daily name to when you last did them.
+nptools.cookies: cookies from curl.
+*.log: various activity-specific log files.
+pages/: copy of all requested pages.
+shop_captchas/: images of captchas when buying items.
+```
+
 ## TODO
 
 ### Site activities

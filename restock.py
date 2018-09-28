@@ -1731,7 +1731,7 @@ def restock(shop_id):
 
     name, price, obj_info_id, stock_id, brr = best
     if (
-            (best_score[0] and best_score[1] > price) or
+            (best_score[0] and best_score[1] > MIN_PROFIT) or
             (best_score[1] >= MIN_PROFIT and best_score[2] >= MIN_PROFIT_MARGIN)
         ):
         np.get('/haggle.phtml', f'obj_info_id={obj_info_id}', f'stock_id={stock_id}', f'brr={brr}')
