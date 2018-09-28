@@ -2,8 +2,11 @@
 *.pyignore
 .env
 __pycache__
-pages
 nptools.cookies
 *.log
 *.pickle
 *.db
+Session.vim
+venv
+pages
+shop_captchas

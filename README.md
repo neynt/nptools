@@ -9,11 +9,16 @@ Put
 ```
 NP_USER='username'
 NP_PASS='password'
+PET_NAME='xX_bestpet_Xx
 ```
 
 in a file called .env in this directory. Then run `./run.sh daemon.py`.
 
 Additional flags include `USER_AGENT` and `FIREFOX_COOKIES_DB`.
+
+A lot of this code was written with assumptions that only hold true on my
+account (e.g. you only have one pet, for training). So run it at your own risk
+and maybe start the daemon with only a few safe dailies enabled first.
 
 ## TODO
 

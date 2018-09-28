@@ -1,5 +1,9 @@
 # Utilities for manipulating items and neopoints.
+import re
+
 from lib import NeoPage
+import bank_interest
+import item_db
 
 def list_items():
     np = NeoPage()
@@ -21,7 +25,7 @@ def list_items():
 def deposit_all_items(exclude=[]):
     # First list items to add them to the item db
     np = NeoPage()
-    self.list_items()
+    list_items()
     np.get('/quickstock.phtml')
     items = np.findall(r'''<TD align="left">(.*?)</TD><INPUT type="hidden"  name="id_arr\[(.*?)\]" value="(\d+?)">''')
     args = []
@@ -36,11 +40,13 @@ def ensure_np(amount):
     # Withdraws from the bank to get up at least [amount] NP.
     np = NeoPage()
     np.get('/bank.phtml')
+    if np.contains('Collect Interest ('):
+        bank_interest.bank_interest()
     nps = np.search(r'''<a id='npanchor' href="/inventory.phtml">(.*?)</a>''')[1]
     nps = int(nps.replace(',', ''))
     if nps >= amount: return
     need = amount - nps
-    # Round up to next small multiple of power of ten
-    need = 10**(len(str(need)) - 1) * (int(str(need)[0]) + 1)
+    denom = 10**max(len(str(need)), len(str(amount)))
+    need = (need // denom + 1) * denom
     np.post('/process_bank.phtml', 'type=withdraw', f'amount={need}')
     print(f'Withdrawing {need} NP')

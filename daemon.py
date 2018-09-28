@@ -1,18 +1,19 @@
 # Plays Neopets in the background for you.
 
-import random
-import pycurl
 import atexit
 import datetime
 import logging
 import os
 import pickle
+import pycurl
+import random
 import sys
 import time
 
 from anchor_management import anchor_management
 from apple_bobbing import apple_bobbing
 from bank_interest import bank_interest
+from battledome import battledome
 from cheeseroller import cheeseroller
 from coconut_shy import coconut_shy
 from council_chamber import council_chamber
@@ -21,64 +22,82 @@ from faerie_caverns import faerie_caverns
 from fishing import fishing
 from forgotten_shore import forgotten_shore
 from fruit_machine import fruit_machine
+from grumpy_king import grumpy_king
 from healing_springs import healing_springs
 from jelly import jelly
 from kacheek_seek import kacheek_seek
+from kiko_pop import kiko_pop
 from lunar_temple import lunar_temple
+from magma_pool import magma_pool
 from omelette import omelette
 from pirate_academy import pirate_academy
 from plushie import plushie
+from plushie_tycoon import plushie_tycoon
 from pyramids import pyramids
+from restock import restock
 from rich_slorg import rich_slorg
+from scratchcard import buy_scratchcard
 from shrine import shrine
 from snowager import snowager
 from stock_market import stock_market
 from tombola import tombola
 from trudys_surprise import trudys_surprise
 from tyranu_evavu import tyranu_evavu
-from grumpy_king import grumpy_king
 from wise_king import wise_king
-from plushie_tycoon import plushie_tycoon
-from battledome import battledome
-from kiko_pop import kiko_pop
-from magma_pool import magma_pool
-from scratchcard import buy_scratchcard
 
-import lib
-import item_db
-import inventory
-import neotime
 from neotime import daily, now_nst
+import inventory
+import item_db
+import lib
+import neotime
 
 def appraise_item():
+    # Identifies the price of an item that we know about, but not the price of.
     items = item_db.query('SELECT name FROM items WHERE price IS NULL').fetchall()
     items = sum((list(x) for x in items), [])
     if items:
         item = random.choice(items)
         print(f'Learning about {item}')
-        item_db.update_prices(item)
+        try:
+            item_db.update_prices(item, laxness=5)
+        except item_db.ShopWizardBannedException:
+            return neotime.now_nst() + datetime.timedelta(minutes=20)
+
+def my_restock():
+    stores = [
+        68, # Collectable coins
+        38, # Faerie books
+        86, # Sea shells
+        14, # Chocolate factory
+        58, # Post office
+        8, # Collectible cards
+    ]
+    result = restock(random.choice(stores)) or neotime.now_nst()
+    if result:
+        result = result + datetime.timedelta(seconds=random.randint(0, 30))
+    return result
 
 # List[Tuple[String, Callable[[], None], Callable[[datetime], Optional[datetime]]]]
 tasks = [
     # Dailies
-    ('anchor_management', anchor_management, daily(0)),
-    ('apple_bobbing', apple_bobbing, daily(0)),
+    ('anchor_management', anchor_management, daily(1)),
+    ('apple_bobbing', apple_bobbing, daily(1)),
     ('bank_interest', bank_interest, daily(0)),
-    ('council_chamber', council_chamber, daily(0)),
-    ('deserted_tomb', deserted_tomb, daily(0)),
-    ('faerie_caverns', faerie_caverns, daily(0)),
-    ('forgotten_shore', forgotten_shore, daily(0)),
-    ('fruit_machine', fruit_machine, daily(0)),
-    ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(0))),
-    ('jelly', jelly, daily(0)),
-    ('kiko_pop', kiko_pop, daily(0)),
-    ('lunar_temple', lunar_temple, daily(0)),
-    ('omelette', omelette, daily(0)),
-    ('plushie', plushie, daily(0)),
-    ('rich_slorg', rich_slorg, daily(0)),
-    ('tombola', tombola, daily(0)),
-    ('trudys_surprise', trudys_surprise, daily(0)),
-    ('wise_king', wise_king, neotime.skip_lunch(daily(0))),
+    ('council_chamber', council_chamber, daily(1)),
+    ('deserted_tomb', deserted_tomb, daily(1)),
+    ('faerie_caverns', faerie_caverns, daily(1)),
+    ('forgotten_shore', forgotten_shore, daily(1)),
+    ('fruit_machine', fruit_machine, daily(1)),
+    ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(1))),
+    ('jelly', jelly, daily(1)),
+    ('kiko_pop', kiko_pop, daily(1)),
+    ('lunar_temple', lunar_temple, daily(1)),
+    ('omelette', omelette, daily(1)),
+    ('plushie', plushie, daily(1)),
+    ('rich_slorg', rich_slorg, daily(1)),
+    ('tombola', tombola, daily(1)),
+    ('trudys_surprise', trudys_surprise, daily(1)),
+    ('wise_king', wise_king, neotime.skip_lunch(daily(1))),
 
     # Longer-running dailies that we do after normal dailies
     ('stock_market', stock_market, daily(15)),
@@ -98,6 +117,9 @@ tasks = [
     ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
     ('appraise_item', appraise_item, neotime.after(minutes=15)),
     ('pirate_academy', pirate_academy, neotime.immediate),
+
+    # ooh oooh ooh oooo you gotta get cho money
+    ('restock', my_restock, neotime.after(seconds=30)),
     
     # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),

@@ -148,11 +148,12 @@ def check_store(np):
         avg = sum(ps) / n
         stdev = (sum((p - avg)**2 for p in ps) / n)**0.5
         species_stats[species] = {
+            'n': n,
             'last': last,
             'min': min(ps),
             'max': max(ps),
             'avg': avg,
-            'median': ps[len(ps) // 2],
+            'med': ps[len(ps) // 2],
             'stdev': stdev,
         }
     #np.get(path_store, 'Cat=2')
@@ -400,11 +401,11 @@ def plushie_tycoon(details=False):
     # the factory and profitability of each species.
     # TODO: Also consider other materials used in plushies.
     if details:
-        print(f'{"Species (cloths)": <21} {"roi": <6} {"cost": <5} {"lst": <3} {"range": <7} {"avg": <6} {"med": <3} {"stdev": <6}')
+        print(f'{"Species (cloths)": <21} {"n": <3} {"roi": <6} {"cost": <5} {"lst": <3} {"range": <7} {"avg": <6} {"med": <3} {"stdev": <6}')
         for s, total_cost, roi in rois:
             stats = species_stats.get(s)
             roi_ = f'{roi:+.3f}' if roi else '??????'
-            print(f'100x{s: <12} ({cloths[s]}): {roi_} {total_cost: >5} {stats["last"]: >3} {stats["min"]: >3}-{stats["max"]: >3} {stats["avg"]: >6.2f} {stats["median"]: >3} {stats["stdev"]: >6.3f}')
+            print(f'100x{s: <12} ({cloths[s]}): {stats["n"]: >3} {roi_} {total_cost: >5} {stats["last"]: >3} {stats["min"]: >3}-{stats["max"]: >3} {stats["avg"]: >6.2f} {stats["med"]: >3} {stats["stdev"]: >6.3f}')
 
     num_jobs = 18 - num_factory_jobs
     jobs = pick_plushies(cash, rois, accessories_owned, num_jobs)
@@ -435,7 +436,8 @@ def plushie_tycoon(details=False):
             buy_links, material_prices, material_owned,
             accessories_owned, accessory_species)
         start_jobs(np, job_chunk)
-    check_factory(np, hire=True)
+    if jobs_chunked:
+        check_factory(np, hire=True)
 
 if __name__ == '__main__':
     plushie_tycoon(True)

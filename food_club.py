@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# TODO: Check an external website for odds changes and take those into account.
 
 import lib
 

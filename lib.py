@@ -45,7 +45,12 @@ class NeoPage:
             self.get(path)
 
     def save_to_file(self, filename):
-        open(filename, 'w').write(self.content)
+        if type(self.content) == str:
+            open(filename, 'w').write(self.content)
+        elif type(self.content) == bytes:
+            open(filename, 'wb').write(self.content)
+        else:
+            raise 'unknown content type'
 
     def load_file(self, filename):
         self.content = open(filename, 'r').read()
@@ -58,12 +63,13 @@ class NeoPage:
             c.execute('''
             SELECT name, value FROM moz_cookies
             WHERE baseDomain = 'neopets.com'
+            AND expiry >= strftime('%s', 'now')
             ''')
             results = list(c.fetchall())
             cookie_string = ';'.join(f'{name}={value}' for name, value in results)
 
         curl = pycurl.Curl()
-        curl.setopt(pycurl.TIMEOUT_MS, 5000)
+        curl.setopt(pycurl.TIMEOUT_MS, 10000)
         curl.setopt(pycurl.REFERER, self.referer)
         curl.setopt(pycurl.WRITEFUNCTION, storage.write)
         if cookie_string:
@@ -80,7 +86,10 @@ class NeoPage:
         del curl
 
         self.referer = url
-        self.content = storage.getvalue().decode('utf-8')
+        try:
+            self.content = storage.getvalue().decode('utf-8')
+        except UnicodeDecodeError:
+            self.content = storage.getvalue()
 
         if cookies_db:
             c = cookies_db.cursor()
@@ -88,29 +97,30 @@ class NeoPage:
                 if line.startswith('#'): continue
                 tokens = line.split()
                 if len(tokens) == 7:
-                    # TODO: This won't work with logins since they create new
-                    # cookies, not just update existing ones.
                     host = tokens[0]
+                    path = tokens[2]
+                    expiry = int(tokens[4])
                     name = tokens[5]
                     value = tokens[6]
                     c.execute('''
-                    UPDATE moz_cookies
-                    SET value=?
-                    WHERE baseDomain='neopets.com'
-                      AND host=? AND name=?
-                    ''', (value, host, name))
+                    INSERT INTO moz_cookies (baseDomain, host, path, name, value, expiry)
+                    VALUES ('neopets.com', ?, ?, ?, ?, ?)
+                    ON CONFLICT (name, host, path, originAttributes)
+                    DO UPDATE SET value=?, expiry=?
+                    ''', (host, path, name, value, expiry
+                        , value, expiry))
             cookies_db.commit()
 
-        if 'templateLoginPopupIntercept' in self.content:
-            print('Warning: Not logged in?')
-
-        if 'randomEventDiv' in self.content:
-            event = self.search(r'<div class="copy">(.*?)\t</div>')
-            if event:
-                event = strip_tags(event[1])
-                print(f'[Random event: {event}]')
-            else:
-                print('[Random event]')
+        if type(self.content) == str:
+            if 'templateLoginPopupIntercept' in self.content:
+                print('Warning: Not logged in?')
+            if 'randomEventDiv' in self.content:
+                event = self.search(r'<div class="copy">(.*?)\t</div>')
+                if event:
+                    event = strip_tags(event[1])
+                    print(f'[Random event: {event}]')
+                else:
+                    print('[Random event]')
 
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:

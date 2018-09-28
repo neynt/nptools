@@ -1,6 +1,8 @@
 # Neopets item database.
 # Since this would be a singleton anyway, I made it a module instead of a full
 # class (that we instantiate only one of).
+from collections import defaultdict
+import re
 import sqlite3
 
 import lib
@@ -10,6 +12,9 @@ ITEM_DB_FILE = 'itemdb.db'
 UNBUYABLE_PRICE = 1000001
 
 conn = sqlite3.connect(ITEM_DB_FILE, detect_types=sqlite3.PARSE_DECLTYPES)
+
+class ShopWizardBannedException(Exception):
+    pass
 
 def update_schema():
     # Really nice simple schema update scheme. None of that versioning
@@ -50,7 +55,7 @@ def update_schema():
     ''')
     conn.commit()
 
-def query(self, q, *args):
+def query(q, *args):
     c = conn.cursor()
     result = c.execute(q, args)
     conn.commit()
@@ -61,7 +66,7 @@ def query(self, q, *args):
 # updates ALL of them. Returns a "level2" view of the market (i.e. order book
 # of sells, cheapest first, with links) -- which can be useful if you want to
 # buy something.
-def update_prices(self, item_name, laxness=3):
+def update_prices(item_name, laxness=1):
     char_groups = 'an0 bo1 cp2 dq3 er4 fs5 gt6 hu7 iv8 jw9 kx_ ly mz'.split()
     c2g = dict(sum(([(c, i) for c in cs] for i, cs in enumerate(char_groups)), []))
     markets = defaultdict(dict)
@@ -86,12 +91,12 @@ def update_prices(self, item_name, laxness=3):
         if not tbl:
             if np.contains('Whoa there, too many'):
                 print('Shop wizard banned.')
-                return
+                raise ShopWizardBannedException
             ub_count += 1
             if ub_count >= 5: break
             continue
         tbl = tbl[1]
-        rows = table_to_tuples(tbl, raw=True)[1:]
+        rows = lib.table_to_tuples(tbl, raw=True)[1:]
         search_count += 1
         if search_count >= 50: break
         market_data = []
@@ -110,85 +115,105 @@ def update_prices(self, item_name, laxness=3):
 
     level2_by_item = {}
     # Consolidate results for each item into a quote.
-    for obj_info_id, market_data in markets.items():
-        level2 = sorted(sum(market_data.values(), []))
-        level2_by_item[obj_info_id] = level2
-        # The price of an item for our purposes is the price of the nth
-        # cheapest item in the market.
-        cur_amt = 0
-        cur_price = UNBUYABLE_PRICE
-        for price, stock, link in level2:
-            cur_price = price
-            cur_amt += stock
-            if cur_amt >= 5:
-                break
-        print(f'The price of {item_name} (id {obj_info_id}) is {cur_price} NP.')
-        cur_amt = 0
-        for price, stock, link in level2:
-            cur_amt += stock
-            if cur_amt >= 30:
-                break
 
+    if markets:
+        for obj_info_id, market_data in markets.items():
+            # TODO: Check suspiciously cheap prices to see if owners are frozen.
+            level2 = sorted(sum(market_data.values(), []))
+            level2_by_item[obj_info_id] = level2
+            # The price of an item for our purposes is the price of the 2nd
+            # cheapest item in the market.
+            cur_amt = 0
+            cur_price = UNBUYABLE_PRICE
+            for price, stock, link in level2:
+                cur_price = price
+                cur_amt += stock
+                if cur_amt >= 2:
+                    break
+            print(f'The price of {item_name} (id {obj_info_id}) is {cur_price} NP.')
+            cur_amt = 0
+            for price, stock, link in level2:
+                cur_amt += stock
+                if cur_amt >= 30:
+                    break
+            c = conn.cursor()
+            c.execute('''
+            SELECT name FROM items WHERE obj_info_id=?
+            ''', (obj_info_id,))
+            result = c.fetchone()
+            if not result or result[0][0] != item_name:
+                for market_data in level2:
+                    # Visit the shop and populate a bunch of fields
+                    np.get(market_data[2])
+                    res = np.search(r'''<A href=".*?" onClick=".*?"><img src="http://images.neopets.com/items/(.*?)" .*? title="(.*?)" border="1"></a> <br> <b>(.*?)</b>''')
+                    if not res:
+                        print(f'{market_data[2]} is froze?')
+                        continue
+                    image = res[1]
+                    desc = res[2]
+                    name = res[3]
+                    c.execute('''
+                    INSERT INTO items (name, image, desc, obj_info_id, last_updated)
+                    VALUES (?, ?, ?, ?, datetime('now'))
+                    ON CONFLICT (name, image)
+                    DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
+                    ''', (name, image, desc, obj_info_id, desc, obj_info_id))
+                    print(f'The object id of {name} is {obj_info_id}')
+                    break
+                else:
+                    print('Unable to find legit seller for {obj_info_id}. Will not store it in itemdb.')
+                    continue
+            c.execute('''
+            UPDATE items SET price=?, price_last_updated=datetime('now') WHERE obj_info_id=?
+            ''', (cur_price, obj_info_id))
+    else:
+        print(f'It seems {item_name} is unbuyable.')
+        # Item could not be found; assume it's unbuyable.
+        # We use a cheap price estimate of 1,000,001 NP.
+        # TODO: Items inserted in this way will have a wonky image property.
         c = conn.cursor()
         c.execute('''
-        SELECT image FROM items WHERE obj_info_id=?
-        ''', (obj_info_id,))
-        result = c.fetchone()
-        if not result:
-            for market_data in level2:
-                # Visit the shop and populate a bunch of fields
-                np.get(market_data[2])
-                res = np.search(r'''<A href=".*?" onClick=".*?"><img src="http://images.neopets.com/items/(.*?)" .*? title="(.*?)" border="1"></a> <br> <b>(.*?)</b>''')
-                if not res:
-                    print(f'{market_data[2]} is froze?')
-                    continue
-                image = res[1]
-                desc = res[2]
-                name = res[3]
-                c.execute('''
-                INSERT INTO items (name,image,desc,obj_info_id,last_updated)
-                VALUES (?,?,?,?,datetime('now'))
-                ON CONFLICT (name,image)
-                DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
-                ''', (name, image, desc, obj_info_id, desc, obj_info_id))
-                break
-            else:
-                print('Unable to find legit seller for {obj_info_id}. Will not store it in itemdb.')
-                continue
-        c.execute('''
-        UPDATE items SET price=?, price_last_updated=datetime('now') WHERE obj_info_id=?
-        ''', (cur_price, obj_info_id))
+        INSERT INTO items (name, image, last_updated, price, price_last_updated)
+        VALUES (?, NULL, datetime('now'), 1000001, datetime('now'))
+        ON CONFLICT (name, image)
+        DO UPDATE SET last_updated=datetime('now'), price=1000001, price_last_updated=datetime('now')
+        ''', (item_name,))
 
     conn.commit()
     return level2_by_item
 
 # Fetches the price of an item. Updates prices first if a price is not already
 # stored in the db.
-def get_price(item_name, item_image=None):
+def get_price(item_name, item_image=None, update=True):
     c = conn.cursor()
-    results = None
     if item_image:
-        c.execute('''
+        get_results = lambda: c.execute('''
         SELECT image, price FROM items
-        WHERE name = ? AND image = ?
+        WHERE name = ? AND (image = ? OR image = NULL)
         ''', (item_name, item_image))
         results = c.fetchall()
     else:
-        c.execute('''
+        get_results = lambda: c.execute('''
         SELECT image, price FROM items
         WHERE name = ?
         ''', (item_name,))
         results = c.fetchall()
-    if len(results) > 1:
-        print(f'Warning: More than one item with name {item_name}.')
-    ret = {}
-    if not (results and all(price for image, price in results)):
-        market = self.update_prices(item_name)
-        print(market)
-        return self.get_price(item_name, item_image=item_image)
-    for image, price in results:
-        ret[image] = price
-    if len(ret) == 1:
-        return list(ret.values())[0]
-    else:
-        return ret
+    for attempt_ in range(5):
+        get_results()
+        results = c.fetchall()
+        if len(results) > 1:
+            print(f'Warning: More than one item with name {item_name}.')
+        if not (results and all(price for image, price in results)):
+            if update:
+                market = update_prices(item_name, laxness=5)
+            else:
+                return None
+            continue
+
+        ret = {}
+        for image, price in results:
+            ret[image] = int(price)
+        if len(ret) == 1:
+            return list(ret.values())[0]
+        else:
+            return ret
