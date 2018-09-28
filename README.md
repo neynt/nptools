@@ -24,7 +24,6 @@ and maybe start the daemon with only a few safe dailies enabled first.
 
 ### Site activities
 
-- Restocking (extraordinarily lucrative)
 - Food club (depends on age of account; avg. 30-50k/day)
 - Negg Cave (interesting puzzle)
 - Wishing Well (small chance of 300k-600k)

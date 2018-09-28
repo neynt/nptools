@@ -65,12 +65,13 @@ def appraise_item():
 
 def my_restock():
     stores = [
+        1, # Food!
         68, # Collectable coins
-        38, # Faerie books
-        86, # Sea shells
-        14, # Chocolate factory
-        58, # Post office
-        8, # Collectible cards
+        #38, # Faerie books
+        #86, # Sea shells
+        #14, # Chocolate factory
+        #58, # Post office
+        #8, # Collectible cards
     ]
     result = restock(random.choice(stores)) or neotime.now_nst()
     if result:

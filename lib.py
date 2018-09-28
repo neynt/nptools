@@ -36,11 +36,11 @@ USER_AGENT = os.environ.get('USER_AGENT', 'Mozilla/5.0')
 COOKIE_FILE = 'nptools.cookies'
 
 class NeoPage:
-    def __init__(self, path=None):
+    def __init__(self, path=None, base_url=None):
         self.content = ''
         self.last_file_path = ''
         self.referer = ''
-        self.base_url = 'http://www.neopets.com'
+        self.base_url = base_url or 'http://www.neopets.com'
         if path:
             self.get(path)
 

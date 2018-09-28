@@ -4,4 +4,4 @@ set -o allexport
 source .env
 set +o allexport
 
-python3 $@ 2>&1
+python3 $@
