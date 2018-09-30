@@ -7,7 +7,7 @@ import pycurl
 import re
 import sqlite3
 import time
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlencode
 
 from . import util
 
@@ -122,7 +122,7 @@ class NeoPage:
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:
             url += '&' if '?' in url else '?'
-            url += '&'.join(list(params) + util.dict_to_eq_pairs(kwargs))
+            url += '&'.join(list(map(quote_plus, params)) + [urlencode(kwargs)])
         self.perform(url, [(pycurl.POST, 0)])
 
     def save_page(self, url, tag):
@@ -144,7 +144,7 @@ class NeoPage:
         self.save_page(path, 'get')
 
     def post_base(self, url, *params, **kwargs):
-        postfields = '&'.join(list(params) + util.dict_to_eq_pairs(kwargs))
+        postfields = '&'.join(list(params) + [urlencode(kwargs)])
         self.perform(url, [(pycurl.POST, 1), (pycurl.POSTFIELDS, postfields)])
 
     def post_url(self, url, *params, **kwargs):

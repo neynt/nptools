@@ -6,9 +6,6 @@ def strip_tags(text):
 def amt(x):
     return int(strip_tags(x).split()[0].replace(',', ''))
 
-def dict_to_eq_pairs(kwargs):
-    return [f'{k}={v}' for k, v in kwargs.items()]
-
 def table_to_tuples(tbl, raw=False):
     result = []
     trs = re.findall(r'<tr.*?>(.*?)</tr>', tbl, flags=re.DOTALL)
