@@ -70,6 +70,7 @@ class NeoPage:
                 curl.setopt(pycurl.COOKIEJAR, COOKIE_FILE)
                 curl.setopt(pycurl.USERAGENT, USER_AGENT)
                 curl.setopt(pycurl.URL, url)
+                print(url)
                 for k, v in opts:
                     curl.setopt(k, v)
                 curl.perform()
