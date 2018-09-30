@@ -1,11 +1,17 @@
+from lib import NeoPage
+
 import time
+from . import item_db
 
 def price_of_item(name):
+    np = NeoPage(base_url='https://items.jellyneo.net')
+    path = '/search/'
+    np.get(path, 'item=Chocolate Elephante Doughnut')
     pass
 
 # Warning: Keep the request rate super low or you'll get IP banned.
 def gen_restock_list():
-    np = lib.NeoPage(base_url='https://items.jellyneo.net')
+    np = NeoPage(base_url='https://items.jellyneo.net')
     path = '/search/'
     args = []
     # For Fresh Foods shop.

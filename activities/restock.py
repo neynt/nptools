@@ -10,7 +10,7 @@ import sys
 from PIL import Image, ImageDraw, ImageFilter
 
 import lib
-from lib.data import always_buy
+from lib.data import backup_price_data
 from lib import item_db
 from lib import inventory
 from lib import neotime
@@ -53,8 +53,8 @@ def find_neopet(img_data, img_name):
     img.save(f'shop_captchas/{img_name}-solved.png')
 
     # introduce a bit of noise
-    best_x += random.randint(-2, 2)
-    best_y += random.randint(-2, 2)
+    best_x += random.randint(-5, 5)
+    best_y += random.randint(-5, 5)
     return best_x, best_y
 
 def haggle_price(price):
@@ -87,13 +87,13 @@ def restock(shop_id):
         # TODO: Here we assume that items with the same name but drastically
         # different value won't restock in shops. For a more fine-grained
         # search, should search using image as well.
-        true_price = item_db.get_price(name, update=False) or always_buy.get(name)
+        true_price = item_db.get_price(name, update=False) or backup_price_data.get(name)
         if not true_price:
             continue
         #print(f'Item: {stock} x {name} for {price} NP. (True price {true_price} NP)')
 
         profit = true_price - price
-        score = (name in always_buy, profit, profit / price)
+        score = (profit, profit / price)
         if score > best_score:
             #print(f'{name}: {score}')
             best_score = score
@@ -103,8 +103,9 @@ def restock(shop_id):
         return
 
     name, price, obj_info_id, stock_id, brr = best
-    on_buylist, profit, profit_margin = best_score
-    if (on_buylist and profit > MIN_PROFIT) or (profit >= MIN_PROFIT and profit_margin >= MIN_PROFIT_MARGIN):
+    profit, profit_margin = best_score
+    if profit >= MIN_PROFIT and profit_margin >= MIN_PROFIT_MARGIN:
+        print(f'Trying to buy {name} for {offer} !! (profit {profit_margin*100:.1f}% = {profit} NP)')
         np.get('/haggle.phtml', f'obj_info_id={obj_info_id}', f'stock_id={stock_id}', f'brr={brr}')
         referer = np.referer
         _x_pwned = re_captcha.search(np.content)[1]
@@ -125,11 +126,11 @@ def restock(shop_id):
         print(f'No worthy items found. Best was {name} (profit {profit_margin*100:.1f}% = {profit} NP)')
 
     # Learn about unknown items
-    #for obj_info_id, stock_id, g, brr, image, desc, name, stock, price in items:
-    #    try:
-    #        item_db.get_price(name)
-    #    except item_db.ShopWizardBannedException:
-    #        return
+    for obj_info_id, stock_id, g, brr, image, desc, name, stock, price in items:
+        try:
+            item_db.get_price(name)
+        except item_db.ShopWizardBannedException:
+            return
 
 if __name__ == '__main__':
     #restock(13) # Neopian Pharmacy

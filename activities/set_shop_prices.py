@@ -14,11 +14,6 @@ def set_shop_prices():
     args.append('order_by=')
     args.append('view=')
     results = shop_item_re.findall(np.content)
-    orig_results = list(results)
-    # TODO: figure out why this regex returns duplicates
-    # and maybe sort it in a less terrible way
-    results = list(set(results))
-    results.sort(key=lambda x:next(i for i,v in enumerate(orig_results) if v[4] == x[4]))
     wiz_banned = False
     for (name, image, stock, category, obj_id_key, obj_id_val, old_cost_key,
             old_cost_val, cost_key, desc, back_to_inv_key) in results:
@@ -45,7 +40,6 @@ def set_shop_prices():
         args.append(f'{cost_key}={my_price}')
         args.append(f'{back_to_inv_key}=0')
     args.append('obj_name=')
-    print(args)
     np.post('/process_market.phtml', *args)
 
 if __name__ == '__main__':

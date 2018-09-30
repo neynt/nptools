@@ -144,6 +144,7 @@ def update_prices(item_name, laxness=5):
             SELECT name FROM items WHERE obj_info_id=?
             ''', (obj_info_id,))
             result = c.fetchone()
+
             if not result or result[0][0] != item_name:
                 for market_data in level2:
                     # Visit the shop and populate a bunch of fields
@@ -161,7 +162,6 @@ def update_prices(item_name, laxness=5):
                     ON CONFLICT (name, image)
                     DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
                     ''', (name, image, desc, obj_info_id, desc, obj_info_id))
-                    print(f'The object id of {name} is {obj_info_id}')
                     break
                 else:
                     print('Unable to find legit seller for {obj_info_id}. Will not store it in itemdb.')
@@ -192,7 +192,7 @@ def update_prices(item_name, laxness=5):
 # update: Whether or not to update the price.
 # laxness: Laxness with which to update the price (max number of shop wizard
 # sections missed).
-def get_price(item_name, item_image=None, update=True, max_laxness=8, max_age=timedelta(days=90)):
+def get_price(item_name, item_image=None, update=True, max_laxness=9, max_age=timedelta(days=9999)):
     c = conn.cursor()
     if item_image:
         get_results = lambda: c.execute('''

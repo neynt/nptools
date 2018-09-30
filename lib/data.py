@@ -1,7 +1,4 @@
-# ALWAYS buy these items if they are being sold for less than some (huge)
-# amount. Helps short-circuit the lengthy process of collecting price data
-# ourselves.
-always_buy = {
+backup_price_data = {
     # 14. Chocolate Factory
     #'Reject Gold Mote Lolly': 700,
 

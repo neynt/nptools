@@ -63,8 +63,10 @@ def appraise_item():
             item_db.update_prices(item, laxness=7)
         except item_db.ShopWizardBannedException:
             return neotime.now_nst() + datetime.timedelta(minutes=40)
+    else:
+        return now_nst() + datetime.timedelta(minutes=20)
 
-restock_cycle = itertools.cycle([
+restock_shops = [
     1, # Food
     68, # Collectable coins
     #38, # Faerie books
@@ -72,13 +74,21 @@ restock_cycle = itertools.cycle([
     #14, # Chocolate factory
     #58, # Post office
     #8, # Collectible cards
-])
+]
+
+restock_cycle = itertools.cycle(restock_shops)
 
 def my_restock():
-    result = restock(next(restock_cycle)) or neotime.now_nst()
-    if result:
-        result = result + datetime.timedelta(seconds=random.randint(0, 30))
+    times = []
+    for shop in restock_shops:
+        times.append(restock(shop) or neotime.now_nst())
+        time.sleep(0.5)
+    result = max(times)
+    result += datetime.timedelta(seconds=random.randint(0, 30))
     return result
+
+def clean_inventory():
+    inventory.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor'])
 
 # List[Tuple[String, Callable[[], None], Callable[[datetime], Optional[datetime]]]]
 tasks = [
@@ -116,9 +126,9 @@ tasks = [
     ('snowager', snowager, neotime.next_snowager_time),
 
     # Housekeeping
-    ('clean inventory', lambda:inventory.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
+    ('clean inventory', clean_inventory, neotime.after(hours=5)),
     #('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
-    ('appraise_item', appraise_item, neotime.after(minutes=15)),
+    ('appraise_item', appraise_item, neotime.after(minutes=5)),
     ('pirate_academy', pirate_academy, neotime.immediate),
 
     # ooh oooh ooh oooo you gotta get cho money
