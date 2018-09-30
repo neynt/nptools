@@ -7,7 +7,7 @@ import pycurl
 import re
 import sqlite3
 import time
-from urllib.parse import urlsplit, urlencode, quote_plus
+from urllib.parse import urlsplit, urlencode, quote_plus, quote
 
 from . import util
 
@@ -120,10 +120,20 @@ class NeoPage:
                 else:
                     print('[Random event]')
 
+    def make_arg_string(self, params, kwargs, quoter):
+        arg_string_parts = []
+        for p in params:
+            k, v = p.split('=')
+            arg_string_parts.append(f'{k}={quoter(v)}')
+        if kwargs:
+            arg_string_parts.append(urlencode(kwargs))
+        return '&'.join(arg_string_parts)
+
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:
-            url += '&' if '?' in url else '?'
-            url += '&'.join(list(list(params) + [urlencode(kwargs)]))
+            if '?' not in url:
+                url += '&' if '?' in url else '?'
+            url += self.make_arg_string(params, kwargs, quote_plus)
         self.perform(url, [(pycurl.POST, 0)])
 
     def save_page(self, url, tag):
@@ -145,7 +155,7 @@ class NeoPage:
         self.save_page(path, 'get')
 
     def post_base(self, url, *params, **kwargs):
-        postfields = '&'.join(list(params) + [urlencode(kwargs)])
+        postfields = self.make_arg_string(params, kwargs, quote)
         self.perform(url, [(pycurl.POST, 1), (pycurl.POSTFIELDS, postfields)])
 
     def post_url(self, url, *params, **kwargs):
