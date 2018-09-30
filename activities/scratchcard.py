@@ -1,5 +1,5 @@
 import lib
-import inventory
+from lib import inventory
 
 def buy_scratchcard():
     inventory.ensure_np(1200)

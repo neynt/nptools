@@ -1,5 +1,5 @@
-import neotime
 import lib
+from lib import neotime
 
 path = '/magma/pool.phtml'
 

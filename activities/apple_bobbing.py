@@ -1,9 +1,9 @@
-import lib
+from lib import NeoPage
 
 path = '/halloween/applebobbing.phtml'
 
 def apple_bobbing():
-    np = lib.NeoPage(path)
+    np = NeoPage(path)
     if np.contains('Give it a shot!'):
         np.get(path, bobbing=1)
         message = np.search("<div id='bob_middle'>(.*?)</div>")[1].strip()

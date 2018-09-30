@@ -1,6 +1,6 @@
 import lib
 import datetime
-import neotime
+from lib import neotime
 
 path = '/winter/snowager.phtml'
 path2 = '/winter/snowager2.phtml'

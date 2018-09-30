@@ -1,9 +1,9 @@
-import lib
+from lib import NeoPage
 
 path = '/pirates/anchormanagement.phtml'
 
 def anchor_management():
-    np = lib.NeoPage(path)
+    np = NeoPage(path)
     if np.contains('form-fire-cannon'):
         action = np.search('<input name="action" type="hidden" value="(.*?)">')[1]
         np.post(path, action=action)

@@ -1,8 +1,8 @@
-import lib
+from lib import NeoPage
 
 def bank_interest():
     path = '/bank.phtml'
-    np = lib.NeoPage(path)
+    np = NeoPage(path)
     if np.contains('You have already collected your interest today.'):
         print('Already collected interest today.')
     elif np.contains('Collect Interest ('):

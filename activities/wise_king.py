@@ -6,7 +6,7 @@ import lib
 path = '/medieval/wiseking.phtml'
 path2 = '/medieval/process_wiseking.phtml'
 
-from grumpy_king import make_params
+from activities.grumpy_king import make_params
 
 def wise_king():
     np = lib.NeoPage()

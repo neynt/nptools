@@ -4,7 +4,7 @@ import os
 import re
 import time
 
-import lib
+from lib import NeoPage
 
 # TODO: Autodetect this.
 PET_NAME = os.environ['PET_NAME']
@@ -14,13 +14,13 @@ path_fight = '/dome/fight.phtml'
 path_start_fight = '/dome/ajax/startFight.php'
 path_arena = '/dome/arena.phtml'
 path_arena_ajax = '/dome/ajax/arena.php'
-npc_id = 31 # Chia Clown
-#npc_id = 218 # Amateur Insider
+#npc_id = 31 # Chia Clown
+npc_id = 218 # Amateur Insider
 #npc_id = 206 # S750 Kreludan Defender Robot
-toughness = 2
+toughness = 3
 
 def battledome(forever = False):
-    np = lib.NeoPage(path)
+    np = NeoPage(path)
     np.get(path_arena)
     neopoints_left = True
     prizes_left = True

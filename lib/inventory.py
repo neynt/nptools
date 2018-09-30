@@ -2,8 +2,8 @@
 import re
 
 from lib import NeoPage
-import bank_interest
-import item_db
+from activities import bank_interest
+from . import item_db
 
 def list_items():
     np = NeoPage()

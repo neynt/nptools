@@ -9,47 +9,48 @@ import pycurl
 import random
 import sys
 import time
+import itertools
 
-from anchor_management import anchor_management
-from apple_bobbing import apple_bobbing
-from bank_interest import bank_interest
-from battledome import battledome
-from cheeseroller import cheeseroller
-from coconut_shy import coconut_shy
-from council_chamber import council_chamber
-from deserted_tomb import deserted_tomb
-from faerie_caverns import faerie_caverns
-from fishing import fishing
-from forgotten_shore import forgotten_shore
-from fruit_machine import fruit_machine
-from grumpy_king import grumpy_king
-from healing_springs import healing_springs
-from jelly import jelly
-from kacheek_seek import kacheek_seek
-from kiko_pop import kiko_pop
-from lunar_temple import lunar_temple
-from magma_pool import magma_pool
-from omelette import omelette
-from pirate_academy import pirate_academy
-from plushie import plushie
-from plushie_tycoon import plushie_tycoon
-from pyramids import pyramids
-from restock import restock
-from rich_slorg import rich_slorg
-from scratchcard import buy_scratchcard
-from shrine import shrine
-from snowager import snowager
-from stock_market import stock_market
-from tombola import tombola
-from trudys_surprise import trudys_surprise
-from tyranu_evavu import tyranu_evavu
-from wise_king import wise_king
+from activities.anchor_management import anchor_management
+from activities.apple_bobbing import apple_bobbing
+from activities.bank_interest import bank_interest
+from activities.battledome import battledome
+from activities.cheeseroller import cheeseroller
+from activities.coconut_shy import coconut_shy
+from activities.council_chamber import council_chamber
+from activities.deserted_tomb import deserted_tomb
+from activities.faerie_caverns import faerie_caverns
+from activities.fishing import fishing
+from activities.forgotten_shore import forgotten_shore
+from activities.fruit_machine import fruit_machine
+from activities.grumpy_king import grumpy_king
+from activities.healing_springs import healing_springs
+from activities.jelly import jelly
+from activities.kacheek_seek import kacheek_seek
+from activities.kiko_pop import kiko_pop
+from activities.lunar_temple import lunar_temple
+from activities.magma_pool import magma_pool
+from activities.omelette import omelette
+from activities.pirate_academy import pirate_academy
+from activities.plushie import plushie
+from activities.plushie_tycoon import plushie_tycoon
+from activities.pyramids import pyramids
+from activities.restock import restock
+from activities.rich_slorg import rich_slorg
+from activities.scratchcard import buy_scratchcard
+from activities.shrine import shrine
+from activities.snowager import snowager
+from activities.stock_market import stock_market
+from activities.tombola import tombola
+from activities.trudys_surprise import trudys_surprise
+from activities.tyranu_evavu import tyranu_evavu
+from activities.wise_king import wise_king
 
-from neotime import daily, now_nst
-import inventory
-import item_db
 import lib
-import neotime
+from lib import neotime
+from lib.neotime import daily, now_nst
+from lib import inventory
+from lib import item_db
 
 def appraise_item():
     # Identifies the price of an item that we know about, but not the price of.
@@ -59,21 +60,22 @@ def appraise_item():
         item = random.choice(items)
         print(f'Learning about {item}')
         try:
-            item_db.update_prices(item, laxness=5)
+            item_db.update_prices(item, laxness=7)
         except item_db.ShopWizardBannedException:
-            return neotime.now_nst() + datetime.timedelta(minutes=20)
+            return neotime.now_nst() + datetime.timedelta(minutes=40)
+
+restock_cycle = itertools.cycle([
+    1, # Food
+    68, # Collectable coins
+    #38, # Faerie books
+    #86, # Sea shells
+    #14, # Chocolate factory
+    #58, # Post office
+    #8, # Collectible cards
+])
 
 def my_restock():
-    stores = [
-        1, # Food!
-        68, # Collectable coins
-        #38, # Faerie books
-        #86, # Sea shells
-        #14, # Chocolate factory
-        #58, # Post office
-        #8, # Collectible cards
-    ]
-    result = restock(random.choice(stores)) or neotime.now_nst()
+    result = restock(next(restock_cycle)) or neotime.now_nst()
     if result:
         result = result + datetime.timedelta(seconds=random.randint(0, 30))
     return result
@@ -115,7 +117,7 @@ tasks = [
 
     # Housekeeping
     ('clean inventory', lambda:inventory.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor']), neotime.after(hours=5)),
-    ('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
+    #('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
     ('appraise_item', appraise_item, neotime.after(minutes=15)),
     ('pirate_academy', pirate_academy, neotime.immediate),
 
@@ -201,13 +203,13 @@ def main():
                 # which the thing was done". For example, this is used to make
                 # sure we only do the Snowager once every time it wakes up.
                 last_done[name] = f() or now_nst()
-        except lib.NotLoggedInError:
+        except lib.neo_page.NotLoggedInError:
             print('Unable to log in.')
         except KeyboardInterrupt:
             print('Shutting down.')
             break
         except pycurl.error as e:
-            print('pycurl error:', e)
+            print('pycurl error: ', e)
             time.sleep(1)
         except Exception as e:
             logging.exception('')

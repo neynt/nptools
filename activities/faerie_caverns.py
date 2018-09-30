@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import lib
-import inventory
+from lib import inventory
 
 path = '/faerieland/caverns/index.phtml'
 

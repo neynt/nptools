@@ -1,5 +1,6 @@
-from collections import defaultdict
-from datetime import datetime
+# NeoPage: Wrapper around pycurl that simulates a browser.
+# TODO: Maybe eventually replace this with Selenium.
+
 import io
 import os
 import pycurl
@@ -7,23 +8,7 @@ import re
 import sqlite3
 import time
 
-def strip_tags(text):
-    return ' '.join([t.strip() for t in re.split(r'<.*?>', text) if t.strip()])
-
-def amt(x):
-    return int(strip_tags(x).split()[0].replace(',', ''))
-
-def dict_to_eq_pairs(kwargs):
-    return [f'{k}={v}' for k, v in kwargs.items()]
-
-def table_to_tuples(tbl, raw=False):
-    result = []
-    trs = re.findall(r'<tr.*?>(.*?)</tr>', tbl, flags=re.DOTALL)
-    for i,tr in enumerate(trs):
-        tds = re.findall(r'<td.*?>(.*?)</td>', tr, flags=re.DOTALL)
-        tds = tuple(tds) if raw else tuple(map(strip_tags, tds))
-        result.append(tds)
-    return result
+from . import util
 
 class NotLoggedInError(Exception):
     pass
@@ -68,20 +53,29 @@ class NeoPage:
             results = list(c.fetchall())
             cookie_string = ';'.join(f'{name}={value}' for name, value in results)
 
-        curl = pycurl.Curl()
-        curl.setopt(pycurl.TIMEOUT_MS, 10000)
-        curl.setopt(pycurl.REFERER, self.referer)
-        curl.setopt(pycurl.WRITEFUNCTION, storage.write)
-        if cookie_string:
-            curl.setopt(pycurl.COOKIE, cookie_string)
-        else:
-            curl.setopt(pycurl.COOKIEFILE, COOKIE_FILE)
-        curl.setopt(pycurl.COOKIEJAR, COOKIE_FILE)
-        curl.setopt(pycurl.USERAGENT, USER_AGENT)
-        curl.setopt(pycurl.URL, url)
-        for k, v in opts:
-            curl.setopt(k, v)
-        curl.perform()
+        for _ in range(5):
+            try:
+                storage.seek(0)
+                storage.truncate(0)
+                curl = pycurl.Curl()
+                curl.setopt(pycurl.TIMEOUT_MS, 6000)
+                curl.setopt(pycurl.FOLLOWLOCATION, True)
+                curl.setopt(pycurl.REFERER, self.referer)
+                curl.setopt(pycurl.WRITEFUNCTION, storage.write)
+                if cookie_string:
+                    curl.setopt(pycurl.COOKIE, cookie_string)
+                else:
+                    curl.setopt(pycurl.COOKIEFILE, COOKIE_FILE)
+                curl.setopt(pycurl.COOKIEJAR, COOKIE_FILE)
+                curl.setopt(pycurl.USERAGENT, USER_AGENT)
+                curl.setopt(pycurl.URL, url)
+                for k, v in opts:
+                    curl.setopt(k, v)
+                curl.perform()
+            except pycurl.error as e:
+                print(f'pycurl error {e}')
+                time.sleep(1)
+
         # Forces cookies to be flushed to COOKIE_FILE, I hope.
         del curl
 
@@ -117,7 +111,7 @@ class NeoPage:
             if 'randomEventDiv' in self.content:
                 event = self.search(r'<div class="copy">(.*?)\t</div>')
                 if event:
-                    event = strip_tags(event[1])
+                    event = util.strip_tags(event[1])
                     print(f'[Random event: {event}]')
                 else:
                     print('[Random event]')
@@ -125,7 +119,7 @@ class NeoPage:
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:
             url += '&' if '?' in url else '?'
-            url += '&'.join(list(params) + dict_to_eq_pairs(kwargs))
+            url += '&'.join(list(params) + util.dict_to_eq_pairs(kwargs))
         self.perform(url, [(pycurl.POST, 0)])
 
     def save_page(self, url, tag):
@@ -147,7 +141,7 @@ class NeoPage:
         self.save_page(path, 'get')
 
     def post_base(self, url, *params, **kwargs):
-        postfields = '&'.join(list(params) + dict_to_eq_pairs(kwargs))
+        postfields = '&'.join(list(params) + util.dict_to_eq_pairs(kwargs))
         self.perform(url, [(pycurl.POST, 1), (pycurl.POSTFIELDS, postfields)])
 
     def post_url(self, url, *params, **kwargs):

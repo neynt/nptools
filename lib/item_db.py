@@ -1,12 +1,13 @@
 # Neopets item database.
 # Since this would be a singleton anyway, I made it a module instead of a full
 # class (that we instantiate only one of).
+from datetime import datetime, timedelta
 from collections import defaultdict
 import re
 import sqlite3
 
 import lib
-from lib import NeoPage
+from . import NeoPage
 
 ITEM_DB_FILE = 'itemdb.db'
 UNBUYABLE_PRICE = 1000001
@@ -25,7 +26,7 @@ def update_schema():
     CREATE TABLE IF NOT EXISTS items (id integer primary key);
     DROP TABLE IF EXISTS new_items;
     CREATE TABLE new_items (
-        id integer primary key,
+        id integer PRIMARY KEY,
         name text not null,
         image text,
         desc text,
@@ -33,6 +34,7 @@ def update_schema():
         price real,
         liquidity int,
         last_updated timestamp,
+        price_laxness int,
         price_last_updated timestamp,
         UNIQUE (name, image),
         UNIQUE (obj_info_id)
@@ -66,7 +68,7 @@ def query(q, *args):
 # updates ALL of them. Returns a "level2" view of the market (i.e. order book
 # of sells, cheapest first, with links) -- which can be useful if you want to
 # buy something.
-def update_prices(item_name, laxness=1):
+def update_prices(item_name, laxness=5):
     char_groups = 'an0 bo1 cp2 dq3 er4 fs5 gt6 hu7 iv8 jw9 kx_ ly mz'.split()
     c2g = dict(sum(([(c, i) for c in cs] for i, cs in enumerate(char_groups)), []))
     markets = defaultdict(dict)
@@ -85,7 +87,6 @@ def update_prices(item_name, laxness=1):
 
     # Repeatedly search the shop wizard, collecting all results seen.
     while not markets or any(len(market_data) < len(char_groups) - laxness for market_data in markets.values()):
-        print(f'\r({sum(len(md) for md in markets.values())}/{len(markets) * len(char_groups)}) ', end='')
         np.post('/market.phtml', *opts)
         tbl = np.search(r'<table width="600".*?>(.*?)</table>')
         if not tbl:
@@ -98,7 +99,7 @@ def update_prices(item_name, laxness=1):
         tbl = tbl[1]
         rows = lib.table_to_tuples(tbl, raw=True)[1:]
         search_count += 1
-        if search_count >= 50: break
+        # Strict cap of 20 searches
         market_data = []
         obj_info_id = None
         for owner, item, stock, price in rows:
@@ -112,6 +113,8 @@ def update_prices(item_name, laxness=1):
             market_data.append((price, stock, link))
         g = c2g[lib.strip_tags(rows[0][0])[0]]
         markets[obj_info_id][g] = market_data
+        if search_count >= 20 * len(markets): break
+        print(f'\r({sum(len(md) for md in markets.values())}/{len(markets) * (len(char_groups) - (laxness))}; {search_count}) ', end='')
 
     level2_by_item = {}
     # Consolidate results for each item into a quote.
@@ -164,8 +167,8 @@ def update_prices(item_name, laxness=1):
                     print('Unable to find legit seller for {obj_info_id}. Will not store it in itemdb.')
                     continue
             c.execute('''
-            UPDATE items SET price=?, price_last_updated=datetime('now') WHERE obj_info_id=?
-            ''', (cur_price, obj_info_id))
+            UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now') WHERE obj_info_id=?
+            ''', (cur_price, laxness, obj_info_id))
     else:
         print(f'It seems {item_name} is unbuyable.')
         # Item could not be found; assume it's unbuyable.
@@ -173,45 +176,61 @@ def update_prices(item_name, laxness=1):
         # TODO: Items inserted in this way will have a wonky image property.
         c = conn.cursor()
         c.execute('''
-        INSERT INTO items (name, image, last_updated, price, price_last_updated)
-        VALUES (?, NULL, datetime('now'), 1000001, datetime('now'))
+        INSERT INTO items (name, image, last_updated, price, price_laxness, price_last_updated)
+        VALUES (?, NULL, datetime('now'), 1000001, ?, datetime('now'))
         ON CONFLICT (name, image)
-        DO UPDATE SET last_updated=datetime('now'), price=1000001, price_last_updated=datetime('now')
-        ''', (item_name,))
+        DO UPDATE SET last_updated=datetime('now'), price=1000001, price_laxness=?, price_last_updated=datetime('now')
+        ''', (item_name, laxness, laxness))
 
     conn.commit()
     return level2_by_item
 
-# Fetches the price of an item. Updates prices first if a price is not already
-# stored in the db.
-def get_price(item_name, item_image=None, update=True):
+# Fetches the price of an item.
+# item_name: Name of the item.
+# item_image: Image of the item. If None and there are multiple items with that
+# name, returns a map from obj_info_id to price.
+# update: Whether or not to update the price.
+# laxness: Laxness with which to update the price (max number of shop wizard
+# sections missed).
+def get_price(item_name, item_image=None, update=True, max_laxness=8, max_age=timedelta(days=90)):
     c = conn.cursor()
     if item_image:
         get_results = lambda: c.execute('''
-        SELECT image, price FROM items
+        SELECT image, price, price_laxness, price_last_updated FROM items
         WHERE name = ? AND (image = ? OR image = NULL)
         ''', (item_name, item_image))
         results = c.fetchall()
     else:
         get_results = lambda: c.execute('''
-        SELECT image, price FROM items
+        SELECT image, price, price_laxness, price_last_updated FROM items
         WHERE name = ?
         ''', (item_name,))
         results = c.fetchall()
-    for attempt_ in range(5):
+    for attempt_ in range(2):
         get_results()
         results = c.fetchall()
         if len(results) > 1:
             print(f'Warning: More than one item with name {item_name}.')
-        if not (results and all(price for image, price in results)):
+
+        good = bool(results)
+        for image, price, laxness, last_updated in results:
+            if not (
+                laxness and
+                price and
+                int(laxness) <= max_laxness and
+                datetime.utcnow() - last_updated <= max_age
+            ):
+                good = False
+
+        if not good:
             if update:
-                market = update_prices(item_name, laxness=5)
+                market = update_prices(item_name, laxness=max_laxness)
             else:
                 return None
             continue
 
         ret = {}
-        for image, price in results:
+        for image, price, _, _ in results:
             ret[image] = int(price)
         if len(ret) == 1:
             return list(ret.values())[0]

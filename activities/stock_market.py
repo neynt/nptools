@@ -2,7 +2,7 @@ import re
 from collections import defaultdict
 
 import lib
-import inventory
+from lib import inventory
 
 def stock_market():
     np = lib.NeoPage()

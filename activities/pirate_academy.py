@@ -4,7 +4,7 @@ import datetime
 import re
 
 import lib
-import neotime
+from lib import neotime
 
 path = '/pirates/academy.phtml'
 
