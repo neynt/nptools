@@ -1,4 +1,5 @@
 from lib import NeoPage
+import re
 
 import time
 from . import item_db
