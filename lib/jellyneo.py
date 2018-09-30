@@ -9,7 +9,7 @@ re_jn_item = re.compile(r'''<a href="/item/(\d+)/"><img .*?></a><br><a .*?>(.*?)
 def price_of_item(name):
     np = NeoPage(base_url='https://items.jellyneo.net')
     path = '/search/'
-    np.get(path, f'item={name}')
+    np.get(path, f'item={name}', 'name_type=3')
     results = re_jn_item.findall(np.content)
     item_id, name, price_updated, price = results[0]
     print(f'Price of {name} is {price}')

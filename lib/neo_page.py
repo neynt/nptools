@@ -122,7 +122,7 @@ class NeoPage:
     def get_base(self, url, *params, **kwargs):
         if params or kwargs:
             url += '&' if '?' in url else '?'
-            url += '&'.join(list(map(quote_plus, params)) + [urlencode(kwargs)])
+            url += '&'.join(list(list(params) + [urlencode(kwargs)]))
         self.perform(url, [(pycurl.POST, 0)])
 
     def save_page(self, url, tag):
