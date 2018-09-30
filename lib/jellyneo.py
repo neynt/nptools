@@ -3,6 +3,8 @@ from lib import NeoPage
 import time
 from . import item_db
 
+re_jn_item = re.compile(r'''<a href="/item/(\d+)/"><img .*?></a><br><a .*?>(.*?)</a>(?:\n<br><span class="text-small"><a href=".*?" class=".*?"(?:title="(.*?)")?>(.*?)</a></span>)?''')
+
 def price_of_item(name):
     np = NeoPage(base_url='https://items.jellyneo.net')
     path = '/search/'

@@ -19,8 +19,6 @@ re_shop_item = re.compile(r'''<A href=".*?obj_info_id=(\d+)&stock_id=(\d+)&g=(\d
 re_header = re.compile(r'''<td class="contentModuleHeader">(.*?)</td>''')
 re_captcha = re.compile(r'''<input type="image" src="/captcha_show\.phtml\?_x_pwned=(.*?)".*>''')
 
-re_jn_item = re.compile(r'''<a href="/item/(\d+)/"><img .*?></a><br><a .*?>(.*?)</a>(?:\n<br><span class="text-small"><a href=".*?" class=".*?"(?:title="(.*?)")?>(.*?)</a></span>)?''')
-
 MIN_PROFIT = 2000
 MIN_PROFIT_MARGIN = 0.8
 
