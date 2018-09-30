@@ -27,7 +27,7 @@ def set_shop_prices():
         args.append(f'{old_cost_key}={old_cost_val}')
         my_price = 0
         try:
-            true_price = item_db.get_price(name, image, update=not wiz_banned, max_laxness=5, max_age=timedelta(days=7))
+            true_price = item_db.get_price(name, image, update=not wiz_banned, max_laxness=3, max_age=timedelta(days=7))
             if true_price == None:
                 pass
             elif type(true_price) == dict:

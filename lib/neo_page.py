@@ -42,27 +42,27 @@ class NeoPage:
 
     def perform(self, url, opts=[]):
         storage = io.BytesIO()
-        cookie_string = None
-        if cookies_db:
-            c = cookies_db.cursor()
-            c.execute('''
-            SELECT name, value FROM moz_cookies
-            WHERE baseDomain = 'neopets.com'
-            AND expiry >= strftime('%s', 'now')
-            ''')
-            results = list(c.fetchall())
-            cookie_string = ';'.join(f'{name}={value}' for name, value in results)
 
+        done_request = False
         for _ in range(5):
             try:
                 storage.seek(0)
                 storage.truncate(0)
                 curl = pycurl.Curl()
-                curl.setopt(pycurl.TIMEOUT_MS, 6000)
+                curl.setopt(pycurl.TIMEOUT_MS, 8000)
                 curl.setopt(pycurl.FOLLOWLOCATION, True)
                 curl.setopt(pycurl.REFERER, self.referer)
                 curl.setopt(pycurl.WRITEFUNCTION, storage.write)
-                if cookie_string:
+                if cookies_db:
+                    host = '.'.join(self.base_url.rsplit('/', 1)[-1].split('.')[-2:])
+                    c = cookies_db.cursor()
+                    c.execute('''
+                    SELECT name, value FROM moz_cookies
+                    WHERE baseDomain = ?
+                    AND expiry >= strftime('%s', 'now')
+                    ''', (host,))
+                    results = list(c.fetchall())
+                    cookie_string = ';'.join(f'{name}={value}' for name, value in results)
                     curl.setopt(pycurl.COOKIE, cookie_string)
                 else:
                     curl.setopt(pycurl.COOKIEFILE, COOKIE_FILE)
@@ -72,9 +72,11 @@ class NeoPage:
                 for k, v in opts:
                     curl.setopt(k, v)
                 curl.perform()
+                done_request = True
             except pycurl.error as e:
                 print(f'pycurl error {e}')
                 time.sleep(1)
+            if done_request: break
 
         # Forces cookies to be flushed to COOKIE_FILE, I hope.
         del curl

@@ -77,7 +77,6 @@ def restock(shop_id):
     np.get('/objects.phtml', f'obj_type={shop_id}', 'type=shop')
     items = re_shop_item.findall(np.content)
     shop_name = re_header.search(np.content)[1].strip()
-    items = list(set(items))
     print(f'{len(items)} items found at {shop_name}.')
 
     # Look for profitable items
