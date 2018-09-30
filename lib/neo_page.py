@@ -7,6 +7,7 @@ import pycurl
 import re
 import sqlite3
 import time
+from urllib.parse import urlsplit
 
 from . import util
 

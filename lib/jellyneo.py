@@ -7,7 +7,9 @@ def price_of_item(name):
     np = NeoPage(base_url='https://items.jellyneo.net')
     path = '/search/'
     np.get(path, 'item=Chocolate Elephante Doughnut')
-    pass
+    results = re_jn_item.findall(np.content)
+    item_id, name, price_updated, price = results[0]
+    print(f'Price of {name} is {price}')
 
 # Warning: Keep the request rate super low or you'll get IP banned.
 def gen_restock_list():
