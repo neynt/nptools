@@ -10,3 +10,4 @@ Session.vim
 venv
 pages
 shop_captchas
+lib/data.py
