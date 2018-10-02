@@ -69,22 +69,31 @@ def appraise_item():
 restock_shops = [
     1, # Food
     68, # Collectable coins
+    10, # Defense magic
+    86, # Sea shells
+    8, # Collectable cards
     #38, # Faerie books
-    #86, # Sea shells
     #14, # Chocolate factory
-    #58, # Post office
+    58, # Post office
     #8, # Collectible cards
 ]
 
-restock_cycle = itertools.cycle(restock_shops)
+# Become very interested in 3 shops for a while, then switch it up.
+def next_restocks_f():
+    while True:
+        shops = random.sample(restock_shops, 3)
+        for _ in range(15):
+            yield shops
+
+next_restocks = next_restocks_f()
 
 def my_restock():
     times = []
-    for shop in restock_shops:
+    for shop in next(next_restocks):
         times.append(restock(shop) or neotime.now_nst())
         time.sleep(0.5)
     result = max(times)
-    result += datetime.timedelta(seconds=random.randint(0, 30))
+    result += datetime.timedelta(seconds=random.randint(10, 30))
     return result
 
 def clean_inventory():
@@ -132,7 +141,7 @@ tasks = [
     ('pirate_academy', pirate_academy, neotime.immediate),
 
     # ooh oooh ooh oooo you gotta get cho money
-    ('restock', my_restock, neotime.after(seconds=30)),
+    #('restock', my_restock, neotime.after(seconds=30)),
     
     # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),

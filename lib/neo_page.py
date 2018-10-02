@@ -23,6 +23,7 @@ COOKIE_FILE = 'nptools.cookies'
 
 class NeoPage:
     def __init__(self, path=None, base_url=None):
+        self.byte_content = b''
         self.content = ''
         self.last_file_path = ''
         self.referer = ''
@@ -31,12 +32,7 @@ class NeoPage:
             self.get(path)
 
     def save_to_file(self, filename):
-        if type(self.content) == str:
-            open(filename, 'w').write(self.content)
-        elif type(self.content) == bytes:
-            open(filename, 'wb').write(self.content)
-        else:
-            raise 'unknown content type'
+        open(filename, 'wb').write(self.byte_content)
 
     def load_file(self, filename):
         self.content = open(filename, 'r').read()
@@ -70,7 +66,6 @@ class NeoPage:
                 curl.setopt(pycurl.COOKIEJAR, COOKIE_FILE)
                 curl.setopt(pycurl.USERAGENT, USER_AGENT)
                 curl.setopt(pycurl.URL, url)
-                print(url)
                 for k, v in opts:
                     curl.setopt(k, v)
                 curl.perform()
@@ -84,10 +79,11 @@ class NeoPage:
         del curl
 
         self.referer = url
+        self.byte_content = storage.getvalue()
         try:
-            self.content = storage.getvalue().decode('utf-8')
+            self.content = storage.getvalue().decode('utf-8', errors='ignore')
         except UnicodeDecodeError:
-            self.content = storage.getvalue()
+            self.content = ''
 
         if cookies_db:
             c = cookies_db.cursor()

@@ -15,9 +15,9 @@ path_start_fight = '/dome/ajax/startFight.php'
 path_arena = '/dome/arena.phtml'
 path_arena_ajax = '/dome/ajax/arena.php'
 #npc_id = 31 # Chia Clown
-npc_id = 218 # Amateur Insider
-#npc_id = 206 # S750 Kreludan Defender Robot
-toughness = 3
+#npc_id = 218 # Amateur Insider
+npc_id = 206 # S750 Kreludan Defender Robot
+toughness = 2
 
 def battledome(forever = False):
     np = NeoPage(path)

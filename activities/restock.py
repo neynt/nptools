@@ -19,8 +19,8 @@ re_shop_item = re.compile(r'''<A href=".*?obj_info_id=(\d+)&stock_id=(\d+)&g=(\d
 re_header = re.compile(r'''<td class="contentModuleHeader">(.*?)</td>''')
 re_captcha = re.compile(r'''<input type="image" src="/captcha_show\.phtml\?_x_pwned=(.*?)".*>''')
 
-MIN_PROFIT = 2000
-MIN_PROFIT_MARGIN = 0.8
+MIN_PROFIT = 5000
+MIN_PROFIT_MARGIN = 0.2
 
 def find_neopet(img_data, img_name):
     img = Image.open(io.BytesIO(img_data))
@@ -85,13 +85,16 @@ def restock(shop_id):
         # TODO: Here we assume that items with the same name but drastically
         # different value won't restock in shops. For a more fine-grained
         # search, should search using image as well.
-        true_price = item_db.get_price(name, update=False) or backup_price_data.get(name)
-        if not true_price:
-            continue
+        prices = [
+            item_db.get_price(name, update=False, max_laxness=5),
+            backup_price_data.get(name),
+        ]
+        prices = [p for p in prices if p]
+        true_price = min(prices) if prices else 0
         #print(f'Item: {stock} x {name} for {price} NP. (True price {true_price} NP)')
 
         profit = true_price - price
-        score = (profit, profit / price)
+        score = (profit, profit / price, true_price)
         if score > best_score:
             #print(f'{name}: {score}')
             best_score = score
@@ -101,40 +104,40 @@ def restock(shop_id):
         return
 
     name, price, obj_info_id, stock_id, brr = best
-    profit, profit_margin = best_score
+    profit, profit_margin, true_price = best_score
     if profit >= MIN_PROFIT and profit_margin >= MIN_PROFIT_MARGIN:
-        print(f'Trying to buy {name} for {offer} !! (profit {profit_margin*100:.1f}% = {profit} NP)')
+        offer = haggle_price(price)
+        print(f'Trying to buy {name} for {offer} !! (price {price}; worth {true_price} NP)')
+
         np.get('/haggle.phtml', f'obj_info_id={obj_info_id}', f'stock_id={stock_id}', f'brr={brr}')
         referer = np.referer
-        _x_pwned = re_captcha.search(np.content)[1]
-        np.get('/captcha_show.phtml', f'_x_pwned={_x_pwned}')
+        _x_pwned = re_captcha.search(np.content)
+        if _x_pwned:
+            _x_pwned = _x_pwned[1]
+            np.get('/captcha_show.phtml', f'_x_pwned={_x_pwned}')
 
-        offer = haggle_price(price)
-        print(f'Trying to buy {name} for {offer} !! (profit {profit_margin*100:.1f}% = {profit} NP)')
-        best_x, best_y = find_neopet(np.content, _x_pwned)
-        np.set_referer(referer)
-        print(f'Haggling @ {offer}')
+            best_x, best_y = find_neopet(np.byte_content, _x_pwned)
+            np.set_referer(referer)
+            print(f'Haggling @ {offer}')
 
-        np.post('/haggle.phtml', f'current_offer={offer}', f'x={best_x}', f'y={best_y}')
-        if 'I accept your offer' in np.content:
-            print('Bought !!!')
+            np.post('/haggle.phtml', f'current_offer={offer}', f'x={best_x}', f'y={best_y}')
+            if 'I accept your offer' in np.content:
+                print('Bought !!!')
+            elif 'is SOLD OUT!' in np.content:
+                print('Sold out :(')
+            else:
+                print('Not bought :( TODO: See what happened')
         else:
-            print('Not bought :( TODO: See what happened')
+            print("Didn't click item fast enough! :(")
     else:
-        print(f'No worthy items found. Best was {name} (profit {profit_margin*100:.1f}% = {profit} NP)')
+        print(f'No worthy items found. Best was {name} (price {price}; worth {true_price} NP)')
 
     # Learn about unknown items
-    for obj_info_id, stock_id, g, brr, image, desc, name, stock, price in items:
-        try:
-            item_db.get_price(name)
-        except item_db.ShopWizardBannedException:
-            return
+    #for obj_info_id, stock_id, g, brr, image, desc, name, stock, price in items:
+    #    try:
+    #        item_db.get_price(name)
+    #    except item_db.ShopWizardBannedException:
+    #        return
 
 if __name__ == '__main__':
-    #restock(13) # Neopian Pharmacy
-    #restock(79) # Brightvale Glaziers
-    restock(68) # Collectable Coins
-    #restock(14) # Chocolate Factory
-    #restock(58) # Post office
-    #restock(8) # Collectable cards
-    #gen_restock_list()
+    pass
