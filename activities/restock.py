@@ -19,8 +19,8 @@ re_shop_item = re.compile(r'''<A href=".*?obj_info_id=(\d+)&stock_id=(\d+)&g=(\d
 re_header = re.compile(r'''<td class="contentModuleHeader">(.*?)</td>''')
 re_captcha = re.compile(r'''<input type="image" src="/captcha_show\.phtml\?_x_pwned=(.*?)".*>''')
 
-MIN_PROFIT = 5000
-MIN_PROFIT_MARGIN = 0.2
+MIN_PROFIT = 4000
+MIN_PROFIT_MARGIN = 0.7
 
 def find_neopet(img_data, img_name):
     img = Image.open(io.BytesIO(img_data))
@@ -123,12 +123,17 @@ def restock(shop_id):
             np.post('/haggle.phtml', f'current_offer={offer}', f'x={best_x}', f'y={best_y}')
             if 'I accept your offer' in np.content:
                 print('Bought !!!')
+                inventory.always_stock(name)
             elif 'is SOLD OUT!' in np.content:
                 print('Sold out :(')
             else:
                 print('Not bought :( TODO: See what happened')
+                print(f'_x_pwned was {_x_pwned}')
         else:
             print("Didn't click item fast enough! :(")
+        # Whenever worthy items are found, no matter what happens, hit the same
+        # store again!
+        return restock(shop_id)
     else:
         print(f'No worthy items found. Best was {name} (price {price}; worth {true_price} NP)')
 

@@ -1,9 +1,13 @@
 # Utilities for manipulating items and neopoints.
 import re
+from collections import defaultdict
 
 from lib import NeoPage
 from activities import bank_interest
 from . import item_db
+
+# Items will be deposited unless assigned a special role here.
+item_policy = defaultdict(lambda: 'deposit')
 
 def list_items():
     np = NeoPage()
@@ -22,7 +26,13 @@ def list_items():
         ON CONFLICT (name,image) DO UPDATE SET desc=?, last_updated=datetime('now')
         ''', item_name, item_image, item_desc, item_desc)
 
-def deposit_all_items(exclude=[]):
+def always_keep(item):
+    item_policy[item] = None
+
+def always_stock(item):
+    item_policy[item] = 'stock'
+
+def quickstock(exclude=[]):
     # First list items to add them to the item db
     np = NeoPage()
     list_items()
@@ -32,8 +42,10 @@ def deposit_all_items(exclude=[]):
     args.append('buyitem=0')
     for name, idx, item_id in items:
         args.append(f'id_arr[{idx}]={item_id}')
-        if name not in exclude:
-            args.append(f'radio_arr[{idx}]=deposit')
+        if name in exclude: continue
+        policy = item_policy[name]
+        if policy:
+            args.append(f'radio_arr[{idx}]={policy}')
     np.post('/process_quickstock.phtml', *args)
 
 def ensure_np(amount):

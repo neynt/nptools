@@ -82,6 +82,7 @@ def update_prices(item_name, laxness=5):
     markets = defaultdict(dict)
     ub_count = 0
     search_count = 0
+    lowest_price = UNBUYABLE_PRICE
 
     np = NeoPage('/market.phtml?type=wizard')
     opts = []
@@ -120,10 +121,15 @@ def update_prices(item_name, laxness=5):
             price = lib.amt(lib.strip_tags(price))
             stock = lib.amt(stock)
             market_data.append((price, stock, link))
+            lowest_price = min(lowest_price, price)
         g = c2g[lib.strip_tags(rows[0][0])[0]]
         markets[obj_info_id][g] = market_data
         if search_count >= 30 * len(markets): break
-        print(f'\r({sum(len(md) for md in markets.values())}/{len(markets) * (len(char_groups) - (laxness))}; {search_count}) ', end='')
+
+        found = sum(len(md) for md in markets.values())
+        total = len(markets) * (len(char_groups) - (laxness))
+        print(f'\r({item_name}: {lowest_price} NP; {found}/{total}; {search_count}) ', end='')
+    print()
 
     level2_by_item = {}
 
@@ -143,8 +149,8 @@ def update_prices(item_name, laxness=5):
                 if not res:
                     print(f'{link} is frozen?')
                     continue
-                print(f'{link} is selling {name} for {price}')
                 image, desc, name = res[1], res[2], res[3]
+                print(f'{link} has {stock}')
                 if cur_amt <= 2:
                     cur_price = price
                 cur_amt += stock
@@ -154,8 +160,8 @@ def update_prices(item_name, laxness=5):
                     break
             else:
                 # TODO: This probably actually means the item is unbuyable.
-                print('Unable to find legit seller for {obj_info_id}. Will not store it in itemdb.')
-                continue
+                print(f'Unable to find enough sellers for {obj_info_id}. Assuming unbuyable.')
+                cur_price = UNBUYABLE_PRICE
 
             print(f'The price of {item_name} (id {obj_info_id}) is {cur_price} NP.')
 
@@ -181,13 +187,24 @@ def update_prices(item_name, laxness=5):
         # Item could not be found; assume it's unbuyable.
         # We use a cheap price estimate of 1,000,001 NP.
         # TODO: Items inserted in this way will have a wonky image property.
+
         c = conn.cursor()
         c.execute('''
-        INSERT INTO items (name, last_updated, price, price_laxness, price_last_updated)
-        VALUES (?, datetime('now'), 1000001, ?, datetime('now'))
-        ON CONFLICT (name, image)
-        DO UPDATE SET last_updated=datetime('now'), price=1000001, price_laxness=?, price_last_updated=datetime('now')
-        ''', (item_name, laxness, laxness))
+        SELECT image FROM items WHERE name = ?
+        ''', (item_name,))
+        result = c.fetchone()
+
+        if not result:
+            c.execute('''
+            INSERT INTO items (name, last_updated)
+            VALUES (?, datetime('now'))
+            ON CONFLICT (name, image)
+            DO UPDATE SET last_updated=datetime('now')
+            ''', (item_name,))
+
+        c.execute('''
+        UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now') WHERE name=?
+        ''', (1000001, laxness, item_name))
 
     conn.commit()
     return level2_by_item
@@ -199,12 +216,94 @@ def update_prices(item_name, laxness=5):
 # update: Whether or not to update the price.
 # laxness: Laxness with which to update the price (max number of shop wizard
 # sections missed).
-def get_price(item_name, item_image=None, update=True, max_laxness=9, max_age=timedelta(days=9999)):
+
+# Mostly Neohome Superstore items
+fixed_prices = {
+    'Blue Maraqua Wall Paint': 400,
+    'Blue Meridell Wall Paint': 400,
+    'Green Mystery Island Wall Paint': 400,
+    'Yellow Neopia Central Wall Paint': 400,
+    'Green Roo Island Wall Paint': 400,
+    'Red Shenkuu Wall Paint': 400,
+    'Blue Terror Mountain Wall Paint': 400,
+    'Brown Tyrannia Wall Paint': 400,
+    'Grey Virtupets Wall Paint': 400,
+    'Yellow Altador Wall Paint': 400,
+    'Yellow Brightvale Wall Paint': 400,
+    'Purple Darigan Citadel Wall Paint': 400,
+    'Pink Faerieland Wall Paint': 400,
+    'Orange Haunted Woods Wall Paint': 400,
+    'Green Kiko Lake Wall Paint': 400,
+    'Red Krawk Island Wall Paint': 400,
+    'Purple Kreludor Wall Paint': 400,
+    'Golden Lost Desert Wall Paint': 400,
+    'Pink Lutari Island Wall Paint': 400,
+
+    'Simple Wood Floor': 500,
+    'Basic Red Floor Tiles': 500,
+    'Basic Peach Floor Tiles': 500,
+    'Basic Orange Floor Tiles': 500,
+    'Basic Buff Floor Tiles': 500,
+    'Basic Yellow Floor Tiles': 500,
+    'Basic Mint Green Floor Tiles': 500,
+    'Basic Green Floor Tiles': 500,
+    'Basic Teal Floor Tiles': 500,
+    'Basic Blue Floor Tiles': 500,
+    'Basic Violet Floor Tiles': 500,
+    'Basic Purple Floor Tiles': 500,
+    'Basic Black Floor Tiles': 483,
+    'Basic White Floor Tiles': 400,
+
+    'Simple Yellow Chair': 4122,
+    'Simple Yellow Sofa': 1158,
+    'Simple Blue Chair': 792,
+    'Simple Purple Chair': 1101,
+    'Simple Purple Sofa': 1794,
+    'Simple Blue Sofa': 905,
+    'Simple Green Chair': 999,
+    'Simple Green Sofa': 3445,
+    'Simple Red Chair': 1077,
+    'Simple Red Sofa': 1915,
+
+
+    'Simple Yellow Table': 2427,
+    'Simple Blue Side Table': 1116,
+    'Simple Purple Side Table': 1523,
+    'Simple Purple Table': 786,
+    'Simple Blue Table': 836,
+    'Simple Green Side Table': 2174,
+    'Simple Red Side Table': 723,
+    'Simple Green Table': 739,
+    'Simple Yellow Side Table': 857,
+    'Simple Red Table': 1020,
+
+    'Simple Yellow Bed': 1471,
+    'Simple Purple Bed': 1242,
+    'Simple Blue Bed': 742,
+    'Simple Green Bed': 624,
+    'Simple Red Bed': 1071,
+
+    'Simple Blue Lamp': 1048,
+    'Simple Purple Lamp': 451,
+    'Simple Green Lamp': 992,
+    'Simple Red Lamp': 1724,
+    'Simple Yellow Lamp': 777,
+
+    'Simple Blue Rug': 1966,
+    'Simple Purple Rug': 460,
+    'Simple Green Rug': 557,
+    'Simple Red Rug': 1007,
+    'Simple Yellow Rug': 2111,
+}
+
+def get_price(item_name, item_image=None, update=True, max_laxness=7, max_age=timedelta(days=9999)):
+    if item_name in fixed_prices:
+        return fixed_prices[item_name]
     c = conn.cursor()
     if item_image:
         get_results = lambda: c.execute('''
         SELECT image, price, price_laxness, price_last_updated FROM items
-        WHERE name = ? AND (image = ? OR image = NULL)
+        WHERE name = ? AND (image = ? OR image = 'NONE')
         ''', (item_name, item_image))
         results = c.fetchall()
     else:

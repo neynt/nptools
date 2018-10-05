@@ -21,8 +21,7 @@ def gen_restock_list():
     np = NeoPage(base_url='https://items.jellyneo.net')
     path = '/search/'
     args = []
-    #https://items.jellyneo.net/search/?cat[]=31&min_rarity=1&max_rarity=100&status=1
-    args.append('cat[]=31')
+    args.append('cat[]=5')
 
     args.append('min_rarity=1')
     args.append('max_rarity=100')

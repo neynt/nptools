@@ -27,9 +27,16 @@ itemdb.db: sqlite3 database of Neopets items.
 daemon.pickle: pickled dict from daily name to when you last did them.
 nptools.cookies: cookies from curl.
 *.log: various activity-specific log files.
-pages/: copy of all requested pages.
+pages/: copies of all requested pages.
 shop_captchas/: images of captchas when buying items.
 ```
+
+## Directory structure
+
+- `lib/`: Base library with shared functionality.
+- `activities/`: Application of lib to specific activities around the site.
+- `repl.py`: Imports a bunch of things for `python -i` use.
+- `daemon.py`: Does activities at regular intervals you specify.
 
 ## TODO
 

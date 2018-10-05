@@ -45,6 +45,7 @@ from activities.tombola import tombola
 from activities.trudys_surprise import trudys_surprise
 from activities.tyranu_evavu import tyranu_evavu
 from activities.wise_king import wise_king
+from activities.set_shop_prices import set_shop_prices
 
 import lib
 from lib import neotime
@@ -68,6 +69,7 @@ def appraise_item():
 
 restock_shops = [
     1, # Food
+    7, # Magical books
     68, # Collectable coins
     10, # Defense magic
     86, # Sea shells
@@ -81,8 +83,8 @@ restock_shops = [
 # Become very interested in 3 shops for a while, then switch it up.
 def next_restocks_f():
     while True:
-        shops = random.sample(restock_shops, 3)
-        for _ in range(15):
+        shops = random.sample(restock_shops, 5)
+        for _ in range(random.randint(10, 20)):
             yield shops
 
 next_restocks = next_restocks_f()
@@ -93,11 +95,11 @@ def my_restock():
         times.append(restock(shop) or neotime.now_nst())
         time.sleep(0.5)
     result = max(times)
-    result += datetime.timedelta(seconds=random.randint(10, 30))
+    result += datetime.timedelta(seconds=random.randint(30, 50))
     return result
 
 def clean_inventory():
-    inventory.deposit_all_items(exclude=['Five Dubloon Coin', 'Pant Devil Attractor'])
+    inventory.quickstock(exclude=['Five Dubloon Coin', 'Pant Devil Attractor'])
 
 # List[Tuple[String, Callable[[], None], Callable[[datetime], Optional[datetime]]]]
 tasks = [
@@ -117,31 +119,34 @@ tasks = [
     ('omelette', omelette, daily(1)),
     ('plushie', plushie, daily(1)),
     ('rich_slorg', rich_slorg, daily(1)),
+    ('stock_market', stock_market, daily(1)),
     ('tombola', tombola, daily(1)),
     ('trudys_surprise', trudys_surprise, daily(1)),
     ('wise_king', wise_king, neotime.skip_lunch(daily(1))),
 
     # Longer-running dailies that we do after normal dailies
-    ('stock_market', stock_market, daily(15)),
-    ('battledome', battledome, daily(30)),
-    ('kacheek_seek', kacheek_seek, daily(30)),
-    ('pyramids', lambda:pyramids(True), daily(30)),
+    ('battledome', battledome, daily(2)),
+    ('kacheek_seek', kacheek_seek, daily(2)),
+    ('pyramids', lambda:pyramids(True), daily(2)),
 
     # Multi-dailies
-    ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
+    #('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
+    ('buy_scratchcard', buy_scratchcard, neotime.after(hours=1, minutes=1)), # For boon
     ('fishing', fishing, neotime.after(hours=2)),
     ('healing_springs', healing_springs, neotime.after(minutes=35)),
     ('shrine', shrine, neotime.after(hours=12, minutes=1)),
     ('snowager', snowager, neotime.next_snowager_time),
 
     # Housekeeping
-    ('clean inventory', clean_inventory, neotime.after(hours=5)),
     #('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
     ('appraise_item', appraise_item, neotime.after(minutes=5)),
     ('pirate_academy', pirate_academy, neotime.immediate),
+    ('clean inventory', clean_inventory, neotime.after(hours=1)),
 
     # ooh oooh ooh oooo you gotta get cho money
-    #('restock', my_restock, neotime.after(seconds=30)),
+    ('restock', my_restock, neotime.after(seconds=30)),
+    # TODO: shop wizard ban detect and retry
+    ('set_shop_prices', set_shop_prices, neotime.after(hours=1)),
     
     # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),
