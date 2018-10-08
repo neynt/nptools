@@ -65,6 +65,8 @@ def query(q, *args):
     conn.commit()
     return c
 
+level2_cache = {}
+
 # Updates prices for items with a given name by repeatedly searching with the
 # shop wizard. Identifies when there are multiple items with the same name and
 # updates ALL of them. Returns a "level2" view of the market (i.e. order book
@@ -207,15 +209,31 @@ def update_prices(item_name, laxness=5):
         ''', (1000001, laxness, item_name))
 
     conn.commit()
+
+    level2_cache.update(level2_by_item)
     return level2_by_item
 
-# Fetches the price of an item.
-# item_name: Name of the item.
-# item_image: Image of the item. If None and there are multiple items with that
-# name, returns a map from obj_info_id to price.
-# update: Whether or not to update the price.
-# laxness: Laxness with which to update the price (max number of shop wizard
-# sections missed).
+# Fetches the market for an item.
+# i.e. (price, stock, link) tuples, cheapest first
+def get_market(name, image=None):
+    c = conn.cursor()
+    if image:
+        c.execute('''
+        SELECT obj_info_id FROM items WHERE name = ? AND image = ?
+        ''', (name, image))
+    else:
+        c.execute('''
+        SELECT obj_info_id FROM items WHERE name = ? 
+        ''', (name,))
+    ids = c.fetchall()
+    result = {}
+    for obj_info_id, in ids:
+        if obj_info_id not in level2_cache:
+            update_prices(name, laxness=5)
+        result[obj_info_id] = level2_cache[obj_info_id]
+    if len(result) == 1:
+        result = list(result.values())[0]
+    return result
 
 # Mostly Neohome Superstore items
 fixed_prices = {
@@ -265,7 +283,6 @@ fixed_prices = {
     'Simple Red Chair': 1077,
     'Simple Red Sofa': 1915,
 
-
     'Simple Yellow Table': 2427,
     'Simple Blue Side Table': 1116,
     'Simple Purple Side Table': 1523,
@@ -296,6 +313,13 @@ fixed_prices = {
     'Simple Yellow Rug': 2111,
 }
 
+# Fetches the price of an item.
+# item_name: Name of the item.
+# item_image: Image of the item. If None and there are multiple items with that
+# name, returns a map from obj_info_id to price.
+# update: Whether or not to update the price.
+# laxness: Laxness with which to update the price (max number of shop wizard
+# sections missed).
 def get_price(item_name, item_image=None, update=True, max_laxness=7, max_age=timedelta(days=9999)):
     if item_name in fixed_prices:
         return fixed_prices[item_name]

@@ -45,7 +45,7 @@ from activities.tombola import tombola
 from activities.trudys_surprise import trudys_surprise
 from activities.tyranu_evavu import tyranu_evavu
 from activities.wise_king import wise_king
-from activities.set_shop_prices import set_shop_prices
+from activities.maintain_shop import set_shop_prices, clean_shop_till
 
 import lib
 from lib import neotime
@@ -69,18 +69,18 @@ def appraise_item():
 
 restock_shops = [
     1, # Food
+    2, # Magic
     7, # Magical books
-    68, # Collectable coins
-    10, # Defense magic
-    86, # Sea shells
     8, # Collectable cards
-    #38, # Faerie books
+    10, # Defense magic
     #14, # Chocolate factory
+    #38, # Faerie books
     58, # Post office
-    #8, # Collectible cards
+    68, # Collectable coins
+    86, # Sea shells
 ]
 
-# Become very interested in 3 shops for a while, then switch it up.
+# Become very interested in 5 shops for a while, then switch it up.
 def next_restocks_f():
     while True:
         shops = random.sample(restock_shops, 5)
@@ -144,6 +144,7 @@ tasks = [
     ('clean inventory', clean_inventory, neotime.after(hours=1)),
 
     # ooh oooh ooh oooo you gotta get cho money
+    ('clean_shop_till', clean_shop_till, daily(1)),
     ('restock', my_restock, neotime.after(seconds=30)),
     # TODO: shop wizard ban detect and retry
     ('set_shop_prices', set_shop_prices, neotime.after(hours=1)),
