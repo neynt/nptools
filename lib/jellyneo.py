@@ -1,3 +1,4 @@
+import sys
 import re
 import time
 import random
@@ -17,11 +18,11 @@ def price_of_item(name):
         print(f'Price of {name} ({item_id}) is {price}')
 
 # Warning: Keep the request rate super low or you'll get IP banned.
-def gen_restock_list():
+def gen_restock_list(cat):
     np = NeoPage(base_url='https://items.jellyneo.net')
     path = '/search/'
     args = []
-    args.append('cat[]=2')
+    args.append(f'cat[]={cat}')
 
     args.append('min_rarity=1')
     args.append('max_rarity=100')
@@ -33,8 +34,8 @@ def gen_restock_list():
     start = 0
     while True:
         np.get(path, *args, f'start={start}')
-        last_page = not re.search(r'<li class="arrow"><a href=".*?">&raquo;</a>', np.content)
         time.sleep(min(60, random.expovariate(30)) + 60)
+        last_page = not re.search(r'<li class="arrow"><a href=".*?">&raquo;</a>', np.content)
         referer = np.referer
         results = re_jn_item.findall(np.content)
         for item_id, name, price_updated, price in results:
@@ -53,4 +54,4 @@ def gen_restock_list():
         if last_page: break
 
 if __name__ == '__main__':
-    gen_restock_list()
+    gen_restock_list(sys.argv[1])

@@ -7,14 +7,13 @@ import re
 import sqlite3
 
 import lib
-from . import NeoPage
+import lib.g as g
+from .neo_page import NeoPage
 
 ITEM_DB_FILE = 'itemdb.db'
 UNBUYABLE_PRICE = 1000001
 
 conn = sqlite3.connect(ITEM_DB_FILE, detect_types=sqlite3.PARSE_DECLTYPES)
-
-last_ban = None
 
 class ShopWizardBannedException(Exception):
     pass
@@ -65,23 +64,20 @@ def query(q, *args):
     conn.commit()
     return c
 
-level2_cache = {}
-
 # Updates prices for items with a given name by repeatedly searching with the
 # shop wizard. Identifies when there are multiple items with the same name and
 # updates ALL of them. Returns a "level2" view of the market (i.e. order book
 # of sells, cheapest first, with links) -- which can be useful if you want to
 # buy something.
 def update_prices(item_name, laxness=5):
-    global last_ban
     now = datetime.now()
-    if last_ban and (now - last_ban < timedelta(minutes=1) or (now - last_ban < timedelta(hours=1) and now.hour == last_ban.hour)):
+    if g.last_ban and (now - last_ban < timedelta(minutes=1) or (now - last_ban < timedelta(hours=1) and now.hour == last_ban.hour)):
         print('Still wiz banned.')
         raise ShopWizardBannedException
 
     char_groups = 'an0 bo1 cp2 dq3 er4 fs5 gt6 hu7 iv8 jw9 kx_ ly mz'.split()
-    c2g = dict(sum(([(c, i) for c in cs] for i, cs in enumerate(char_groups)), []))
-    markets = defaultdict(dict)
+    c2grp = dict(sum(([(c, i) for c in cs] for i, cs in enumerate(char_groups)), []))
+    obj_info_ids = set()
     ub_count = 0
     search_count = 0
     lowest_price = UNBUYABLE_PRICE
@@ -97,54 +93,73 @@ def update_prices(item_name, laxness=5):
     opts.append('max_price=999999')
 
     # Repeatedly search the shop wizard, collecting all results seen.
-    while not markets or any(len(market_data) < len(char_groups) - laxness for market_data in markets.values()):
-        np.post('/market.phtml', *opts)
-        if np.contains('Whoa there, too many'):
-            print('Shop wizard banned.')
-            last_ban = datetime.now()
-            raise ShopWizardBannedException
 
-        tbl = np.search(r'<table width="600".*?>(.*?)</table>')
-        if not tbl:
-            ub_count += 1
-            if ub_count >= 15: break
-            continue
-        tbl = tbl[1]
-        rows = lib.table_to_tuples(tbl, raw=True)[1:]
-        search_count += 1
-        market_data = []
-        obj_info_id = None
-        for owner, item, stock, price in rows:
-            result = re.search(r'<a href="(.*?)"><b>(.*?)</b></a>', owner)
-            link = result[1]
-            owner = result[2]
-            result = re.search(r'/browseshop.phtml\?owner=(.*?)&buy_obj_info_id=(.*?)&buy_cost_neopoints=(\d+)', link)
-            obj_info_id = int(result[2])
-            price = lib.amt(lib.strip_tags(price))
-            stock = lib.amt(stock)
-            market_data.append((price, stock, link))
-            lowest_price = min(lowest_price, price)
-        g = c2g[lib.strip_tags(rows[0][0])[0]]
-        markets[obj_info_id][g] = market_data
-        if search_count >= 30 * len(markets): break
-
-        found = sum(len(md) for md in markets.values())
-        total = len(markets) * (len(char_groups) - (laxness))
+    def print_status():
+        found = sum(len(g.markets[md]) for md in obj_info_ids)
+        total = len(obj_info_ids) * (len(char_groups) - laxness)
         print(f'\r({item_name}: {lowest_price} NP; {found}/{total}; {search_count}) ', end='')
-    print()
 
+    try:
+        while not obj_info_ids or any(len(market_data) < len(char_groups) - laxness for market_data in g.markets.values()):
+            print_status()
+            np.post('/market.phtml', *opts)
+            if np.contains('Whoa there, too many'):
+                print('Shop wizard banned.')
+                last_ban = datetime.now()
+                raise ShopWizardBannedException
+
+            search_count += 1
+            if not '<table width="600"' in np.content:
+                ub_count += 1
+                if ub_count >= 15: break
+                continue
+
+            tbl = np.search(r'<table width="600".*?>(.*?)</table>')
+            tbl = tbl[1]
+            rows = lib.table_to_tuples(tbl, raw=True)[1:]
+            market_data = []
+            obj_info_id = None
+            for owner, item, stock, price in rows:
+                result = re.search(r'<a href="(.*?)"><b>(.*?)</b></a>', owner)
+                link = result[1]
+                owner = result[2]
+                result = re.search(r'/browseshop.phtml\?owner=(.*?)&buy_obj_info_id=(.*?)&buy_cost_neopoints=(\d+)', link)
+                obj_info_id = int(result[2])
+                price = lib.amt(lib.strip_tags(price))
+                stock = lib.amt(stock)
+                market_data.append((price, stock, link))
+                lowest_price = min(lowest_price, price)
+
+            obj_info_ids.add(obj_info_id)
+            grp = c2grp[lib.strip_tags(rows[0][0])[0]]
+            g.markets[obj_info_id][grp] = market_data
+            if search_count >= 30 * min(1, len(obj_info_ids)): break
+    except KeyboardInterrupt:
+        laxness = len(char_groups) - min(len(g.markets[i]) for i in obj_info_ids) if obj_info_ids else 0
+        print(f'Interrupted. Actual laxness is {laxness}')
+
+    print_status()
     level2_by_item = {}
 
     # Consolidate results for each item into a quote.
-    if markets:
-        for obj_info_id, market_data in markets.items():
+    if obj_info_ids:
+        for obj_info_id in obj_info_ids:
+            market_data = g.markets[obj_info_id]
             level2 = sorted(sum(market_data.values(), []))
+            g.level2_cache[obj_info_id] = level2
             level2_by_item[obj_info_id] = level2
 
             cur_amt = 0
-            cur_price = UNBUYABLE_PRICE
+            cur_price = 0
             image, desc, name = None, None, None
 
+            # The price of an item for our purposes is the cheapest price such
+            # that:
+            # - it is the second cheapest price, OR
+            # - the next cheapest is at most 10% more expensive.
+            print()
+            if len(obj_info_ids) > 1:
+                print(f'{image} ({obj_info_id}):')
             for price, stock, link in level2:
                 np.get(link)
                 res = np.search(r'''<A href=".*?" onClick=".*?"><img src="http://images.neopets.com/items/(.*?)" .*? title="(.*?)" border="1"></a> <br> <b>(.*?)</b>''')
@@ -153,15 +168,15 @@ def update_prices(item_name, laxness=5):
                     continue
                 image, desc, name = res[1], res[2], res[3]
                 print(f'{link} has {stock}')
-                if cur_amt <= 2:
-                    cur_price = price
+                if price < cur_price * 1.1:
+                    break
+                cur_price = price
+                if stock >= 2:
+                    break
                 cur_amt += stock
-                # The price of an item for our purposes is the price of the 2nd
-                # cheapest item in the market.
                 if cur_amt >= 2:
                     break
             else:
-                # TODO: This probably actually means the item is unbuyable.
                 print(f'Unable to find enough sellers for {obj_info_id}. Assuming unbuyable.')
                 cur_price = UNBUYABLE_PRICE
 
@@ -179,7 +194,10 @@ def update_prices(item_name, laxness=5):
                 VALUES (?, ?, ?, ?, datetime('now'))
                 ON CONFLICT (name, image)
                 DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
-                ''', (name, image, desc, obj_info_id, desc, obj_info_id))
+                ''', (
+                    name, image, desc, obj_info_id,
+                    desc, obj_info_id,
+                ))
 
             c.execute('''
             UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now') WHERE obj_info_id=?
@@ -209,8 +227,6 @@ def update_prices(item_name, laxness=5):
         ''', (1000001, laxness, item_name))
 
     conn.commit()
-
-    level2_cache.update(level2_by_item)
     return level2_by_item
 
 # Fetches the market for an item.

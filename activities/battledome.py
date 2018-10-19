@@ -17,6 +17,7 @@ path_arena_ajax = '/dome/ajax/arena.php'
 #npc_id = 31 # Chia Clown
 #npc_id = 218 # Amateur Insider
 npc_id = 206 # S750 Kreludan Defender Robot
+#npc_id = 26 # Koi Warrior
 toughness = 2
 
 def battledome(forever = False):

@@ -46,9 +46,9 @@ shop_captchas/: images of captchas when buying items.
 - Negg Cave (interesting puzzle)
 - Wishing Well (small chance of 300k-600k)
 - Sakhmet Solitaire (5k/day)
-- Faerieland jobs (~5-10k/day)
 - Cliffhanger (1500 NP/day)
 - Scarab 21 (5k/day)
+- Grave Danger
 - NeoQuest II
 - Cheat
 - Sewage Surfer

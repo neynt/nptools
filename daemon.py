@@ -32,6 +32,7 @@ from activities.lunar_temple import lunar_temple
 from activities.magma_pool import magma_pool
 from activities.omelette import omelette
 from activities.pirate_academy import pirate_academy
+from activities.food_club import food_club
 from activities.plushie import plushie
 from activities.plushie_tycoon import plushie_tycoon
 from activities.pyramids import pyramids
@@ -46,12 +47,14 @@ from activities.trudys_surprise import trudys_surprise
 from activities.tyranu_evavu import tyranu_evavu
 from activities.wise_king import wise_king
 from activities.maintain_shop import set_shop_prices, clean_shop_till
+from activities.faerieland_jobs import faerieland_jobs
 
 import lib
 from lib import neotime
 from lib.neotime import daily, now_nst
 from lib import inventory
 from lib import item_db
+import lib.g as g
 
 def appraise_item():
     # Identifies the price of an item that we know about, but not the price of.
@@ -61,7 +64,7 @@ def appraise_item():
         item = random.choice(items)
         print(f'Learning about {item}')
         try:
-            item_db.update_prices(item, laxness=7)
+            item_db.update_prices(item, laxness=3)
         except item_db.ShopWizardBannedException:
             return neotime.now_nst() + datetime.timedelta(minutes=40)
     else:
@@ -70,32 +73,54 @@ def appraise_item():
 restock_shops = [
     1, # Food
     2, # Magic
+    3, # Toys
+    (4, 30000), # Uni's clothing
     7, # Magical books
     8, # Collectable cards
+    9, # Neopian petpets
     10, # Defense magic
-    #14, # Chocolate factory
-    #38, # Faerie books
+    14, # Chocolate factory
+    30, # Spooky food
+    38, # Faerie books
+    51, # Sutek's scrolls
     58, # Post office
     68, # Collectable coins
+    70, # Booktastic books
     86, # Sea shells
+    98, # Plushie palace
 ]
 
 # Become very interested in 5 shops for a while, then switch it up.
 def next_restocks_f():
     while True:
         shops = random.sample(restock_shops, 5)
-        for _ in range(random.randint(10, 20)):
+        for _ in range(random.randint(1, 5)):
             yield shops
+            if g.consec_empty_shops >= 5:
+                break
 
 next_restocks = next_restocks_f()
 
 def my_restock():
     times = []
     for shop in next(next_restocks):
-        times.append(restock(shop) or neotime.now_nst())
+        if type(shop) == tuple:
+            shop, min_profit = shop
+            res = restock(shop, min_profit=min_profit)
+        else:
+            res = restock(shop)
+        times.append(res or neotime.now_nst())
         time.sleep(0.5)
     result = max(times)
-    result += datetime.timedelta(seconds=random.randint(30, 50))
+    result += datetime.timedelta(seconds=random.randint(10, 50))
+
+    # Soft backoff
+    if g.consec_empty_shops >= 30:
+        result += datetime.timedelta(minutes=5)
+    elif g.consec_empty_shops >= 20:
+        result += datetime.timedelta(minutes=2)
+    elif g.consec_empty_shops >= 10:
+        result += datetime.timedelta(minutes=1)
     return result
 
 def clean_inventory():
@@ -123,18 +148,21 @@ tasks = [
     ('tombola', tombola, daily(1)),
     ('trudys_surprise', trudys_surprise, daily(1)),
     ('wise_king', wise_king, neotime.skip_lunch(daily(1))),
+    ('food_club', food_club, neotime.next_day_at(hour=12, minute=0, second=0)),
 
     # Longer-running dailies that we do after normal dailies
     ('battledome', battledome, daily(2)),
     ('kacheek_seek', kacheek_seek, daily(2)),
-    ('pyramids', lambda:pyramids(True), daily(2)),
+    ('pyramids', pyramids, neotime.immediate),
+    #('faerieland_jobs_1', lambda: faerieland_jobs(3), daily(2)),
+    # TODO: Do 2 more jobs after first 3.
 
     # Multi-dailies
-    #('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
-    ('buy_scratchcard', buy_scratchcard, neotime.after(hours=1, minutes=1)), # For boon
+    ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
+    #('buy_scratchcard', buy_scratchcard, neotime.after(hours=1, minutes=1)), # For boon
     ('fishing', fishing, neotime.after(hours=2)),
     ('healing_springs', healing_springs, neotime.after(minutes=35)),
-    ('shrine', shrine, neotime.after(hours=12, minutes=1)),
+    ('shrine', shrine, neotime.after(hours=13)),
     ('snowager', snowager, neotime.next_snowager_time),
 
     # Housekeeping
@@ -145,7 +173,7 @@ tasks = [
 
     # ooh oooh ooh oooo you gotta get cho money
     ('clean_shop_till', clean_shop_till, daily(1)),
-    ('restock', my_restock, neotime.after(seconds=30)),
+    ('restock', my_restock, neotime.after(seconds=20)),
     # TODO: shop wizard ban detect and retry
     ('set_shop_prices', set_shop_prices, neotime.after(hours=1)),
     
@@ -183,55 +211,49 @@ def ensure_login():
         else:
             print('Logged in.')
 
+def onexit():
+    print('Saving global state to g.pickle')
+    g.save_data()
+
 def main():
-    # State
-    last_done = {}
-
-    PICKLE_FILE = 'daemon.pickle'
-
-    if os.path.isfile(PICKLE_FILE):
-        last_done = pickle.load(open(PICKLE_FILE, 'rb'))
-
-    @atexit.register
-    def save_data():
-        print('Saving data...')
-        pickle.dump(last_done, open(PICKLE_FILE, 'wb'))
+    g.load_data()
+    atexit.register(onexit)
 
     for name, f, _next_time in tasks:
-        if name not in last_done:
+        if name not in g.last_done:
             ensure_login()
             print(f'Never did {name} before. Doing.')
             f()
-            last_done[name] = now_nst()
+            g.last_done[name] = now_nst()
 
-    find_next_task = lambda t: t[2](last_done[t[0]])
+    find_next_task = lambda t: t[2](g.last_done[t[0]])
     failures = []
     while True:
         try:
             while True:
                 now = now_nst()
                 name, f, next_time = min(tasks, key=find_next_task)
-                nxt = next_time(last_done[name])
-                #print(f'{name}: Last done {last_done[name]}, next is {nxt}')
+                nxt = next_time(g.last_done[name])
+                #print(f'{name}: Last done {g.last_done[name]}, next is {nxt}')
                 time_til = (nxt - now).total_seconds()
                 if time_til > 0:
-                    print(f'[Doing {name} in {pprint_seconds(time_til)}]')
+                    print(f'[{now}: Doing {name} in {pprint_seconds(time_til)}]')
                     while True:
                         now = now_nst()
                         time_til = (nxt - now).total_seconds()
                         if time_til <= 0: break
                         time.sleep(min(60, time_til))
                 else:
-                    print(f'[Doing {name}]')
+                    print(f'[{now}: Doing {name}]')
                 ensure_login()
                 # This allows individual functions to override the "time at
                 # which the thing was done". For example, this is used to make
                 # sure we only do the Snowager once every time it wakes up.
-                last_done[name] = f() or now_nst()
+                g.last_done[name] = f() or now_nst()
         except lib.neo_page.NotLoggedInError:
             print('Unable to log in.')
         except KeyboardInterrupt:
-            print('Shutting down.')
+            print('\nShutting down as requested.')
             break
         except pycurl.error as e:
             print('pycurl error: ', e)

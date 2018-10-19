@@ -10,7 +10,7 @@ from lib import inventory
 # TODO: Take a bunch of the item-acquisition logic out of here!
 
 # Minimum profit to take a job.
-MIN_PROFIT=3000
+MIN_PROFIT=2000
 
 path = '/faerieland/employ/employment.phtml'#?type=jobs&voucher=basic&start=0'
 
@@ -84,11 +84,13 @@ def faerieland_jobs(jobs_to_do):
                 prize = util.amt(prize)
                 print(f'Turned in {count}x {name} for {prize} NP. (Profit: {true_profit})')
             elif 'You got the job!' in np.content:
-                print(f'Job was not completed before applying?')
+                print(f'Job was not completed before applying? TODO')
                 print(np.last_file_path)
+                return
             else:
                 print(f'Error applying for job. TODO')
                 print(np.last_file_path)
+                return
             jobs_to_do -= 1
             if jobs_to_do <= 0:
                 return

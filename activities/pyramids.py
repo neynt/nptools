@@ -6,6 +6,7 @@ import re
 import time
 
 import lib
+from lib import neotime
 
 # Returns all (cr, path) pairs.
 # cr: The number of cards that the path reveals.
@@ -35,7 +36,7 @@ def best_move(cur_card, cards):
     best_path = max(paths, key=lambda x:(x[0], len(x[1])))
     return best_path[1][0]
 
-def pyramids(np_only=False):
+def pyramids():
     np = lib.NeoPage('/games/pyramids/index.phtml')
     np.post('/games/pyramids/pyramids.phtml')
     print('Pyramids: ', end='')
@@ -53,10 +54,9 @@ def pyramids(np_only=False):
                 reached_limit = True
             status = np.search(r'Congratulations.*?<b>(\d+?)</b> (Neo)?points!.*total score has been updated to <b>(.*?)</b>.*?have played <b>(.*?)</b> game.*?cleared the pyramid <b>(.*?)</b>.*?current win streak is <b>(.*?)</b>')
             print(f'\nPyramids: {verb} {status[1]} {noun}. Total: {status[3]}. Games: {status[4]}. Won: {status[5]}. Streak: {status[6]}.')
-            if reached_limit and np_only:
-                break
-            print('Pyramids: ', end='')
-            np.post('/games/pyramids/pyramids.phtml')
+            if reached_limit:
+                return neotime.daily(3)(neotime.now_nst())
+            return None
 
         cur_card = np.search(r"&nbsp; <img src='.*?games/mcards/(.*?).gif'")[1]
 
@@ -87,7 +87,8 @@ def pyramids(np_only=False):
             np.get('/games/pyramids/' + links[best_card])
         else:
             np.get('/games/pyramids/pyramids.phtml?action=draw')
-        time.sleep(min(random.expovariate(1/0.4), 5.0))
+        time.sleep(min(random.expovariate(1/0.4), 2.0))
 
 if __name__ == '__main__':
-    pyramids()
+    while True:
+        pyramids()
