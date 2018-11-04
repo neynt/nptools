@@ -1,12 +1,12 @@
-#!/usr/bin/env python3
-
 import datetime
+import os
 import re
 
 import lib
 from lib import neotime
 
 path = '/pirates/academy.phtml'
+path_process = '/pirates/process_academy.phtml'
 
 # Goal: Trains your pet at the pirate academy, prioritizing skills in this
 # order, and trying to keep all skills level: Str, Def, Hp, Mov, Lvl
@@ -21,57 +21,64 @@ path = '/pirates/academy.phtml'
 def pirate_academy():
     np = lib.NeoPage()
     np.get(path, 'type=status')
-    # TODO: Handle more than one pet, train particular pet, etc.
+
     table = np.search(r'<b>Current Course Status</b>.*?<table.*?>.*?<br clear="all">')[0]
-    tds = re.findall(r'<td.*?>(.*?)</td>', table)
-    status = tds[0]
-    stats = tds[1].split('<br>')
-    stats = [re.sub(r'<.*?>', '', s).split()[-1] for s in stats[1:-2] if s]
-    Lvl, Str, Def, Mov, Hp = map(int, stats)
-    time_til = tds[2]
+    trs = re.findall(r'<tr>(.*?)</tr>', table)
 
-    if 'Course Finished!' in time_til:
-        pet_name = np.search(r"<form.*?name='pet_name' value='(.*?)'.*?</form>")[1]
-        np.post('/pirates/process_academy.phtml', 'type=complete', f'pet_name={pet_name}')
-        result = lib.strip_tags(np.content.splitlines()[-1])
-        print(f'Pirate Academy: Finished course. {result}')
+    finish_times = []
+    trained = False
+    for tr1, tr2 in zip(trs[::2], trs[1::2]):
+        pet_name, status = re.search(r'<b>(.*?) \(Level \d+\) is (.*?)</b>', tr1).group(1, 2)
+        print(f'{pet_name}: {status}')
+        Lvl, Str, Def, Mov, Hp = [int(lib.strip_tags(x).split()[-1]) for x in tr2.split('<br>')[1:6]]
+
+        if 'Time till course finishes' in tr2:
+            finish_time = datetime.timedelta()
+            if np.contains('hr'):
+                result = np.search('(\d+) hr')
+                if result: finish_time += datetime.timedelta(hours=int(result[1]))
+            if np.contains('minute'):
+                result = np.search('(\d+) minute')
+                if result: finish_time += datetime.timedelta(minutes=int(result[1]))
+            if np.contains('second'):
+                result = np.search('(\d+) second')
+                if result: finish_time += datetime.timedelta(seconds=int(result[1]))
+            finish_times.append(finish_time)
+            continue
+
+        # Only train pet specified by PET_NAME.
+        if pet_name != os.environ.get('PET_NAME'): continue
+
+        # Complete any course that's done.
+        if 'Complete Course!' in tr2:
+            np.post(path_process, 'type=complete', f'pet_name={pet_name}')
+            result = lib.strip_tags(np.content.splitlines()[-1])
+            print(f'Finished course for {pet_name}. {result}')
+
+        # Start a new course, if none selected.
+        if "<input type='hidden' name='type' value='pay'>" not in tr2:
+            np.get(path, 'type=courses')
+            # TODO: Take advantage of island training school's endurance to 3x health feature.
+            skill = None
+            if any(stat > 2 * Lvl for stat in [Str, Def, Mov, Hp]):
+                # Train level if we must.
+                skill = 'Level'
+            else:
+                # Otherwise, train the lowest skill.
+                skill = min(zip([Str, Hp, Def, Mov], ('Strength', 'Endurance', 'Defence', 'Agility')), key=lambda x:x[0])[1]
+            print(f'Training {skill} for {pet_name}')
+            np.post(path_process, 'type=start', f'course_type={skill}', f'pet_name={pet_name}')
+
+        # Pay for it.
+        # TODO: Acquire payment if necessary.
+        np.get(path)
+        np.post(path_process, f'pet_name={pet_name}', 'type=pay')
+        trained = True
+
+    if trained:
         return pirate_academy()
-
-    elif 'is not on a course' in status:
-        np.get(path, 'type=courses')
-        r = np.search(r"<select name='pet_name'><option value='(.*?)'>.*? - (.*?)</select>")
-        pet_name = r[1]
-        rank = r[2]
-        skill = None
-        if any(stat > 2 * Lvl for stat in [Str, Def, Mov, Hp]):
-            skill = 'Level'
-        else:
-            skill = min(zip([Str, Hp, Def, Mov], ('Strength', 'Endurance', 'Defence', 'Agility')), key=lambda x:x[0])[1]
-        print(f'Pirate Academy: Training {skill} for {pet_name}')
-        np.post('/pirates/process_academy.phtml', 'type=start', f'course_type={skill}', f'pet_name={pet_name}')
-        return pirate_academy()
-
-    elif "<input type='submit' value='Pay'>" in np.content:
-        print(f'Pirate Academy: Paying for lesson')
-        pet_name = np.search(f"<input type='hidden' name='pet_name' value='(.*?)'>")[1]
-        np.post('/pirates/process_academy.phtml', f'pet_name={pet_name}', 'type=pay')
-        np.get(path, 'type=status')
-
-    print(f'Status: {lib.strip_tags(status)}')
-    print(f'Stats: Lvl{Lvl} Str{Str} Def{Def} Mov{Mov} Hp{Hp}')
-    print(time_til)
-    total_time = datetime.timedelta()
-    if np.contains('hr'):
-        result = np.search('(\d+) hr')
-        if result: total_time += datetime.timedelta(hours=int(result[1]))
-    if np.contains('minute'):
-        result = np.search('(\d+) minute')
-        if result: total_time += datetime.timedelta(minutes=int(result[1]))
-    if np.contains('second'):
-        result = np.search('(\d+) second')
-        if result: total_time += datetime.timedelta(seconds=int(result[1]))
-    print(f'Time til: {total_time}')
-    return neotime.now_nst() + total_time + datetime.timedelta(minutes=1)
+    else:
+        return neotime.now_nst() + min(finish_times) + datetime.timedelta(minutes=1)
 
 if __name__ == '__main__':
-    pirate_academy()
+    print(pirate_academy())

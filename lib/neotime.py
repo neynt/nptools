@@ -5,7 +5,8 @@ import random
 # Current Neopian standard time.
 def now_nst():
     t = datetime.datetime.utcnow()
-    t -= datetime.timedelta(hours=7)
+    # TODO: Daylight savings time
+    t -= datetime.timedelta(hours=8)
     return t
 
 def next_day_at(**kwargs):

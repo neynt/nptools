@@ -2,6 +2,16 @@
 
 Illicit automations for neopets.
 
+## Features
+
+- Daemon that you can just configure, run, and forget about
+- Dailies, including difficult ones like Food Club (using max TER) and
+  multi-dailies like underwater fishing
+- Plays certain games very well. e.g. Shapeshifter, Fetch, Tyranu Evavu
+- Restocks, stocks, and prices items automatically ($$$)
+- Logs certain results (e.g. lab zaps)
+- Will probably get you frozen
+
 ## Quick start
 
 Put
@@ -9,24 +19,24 @@ Put
 ```
 NP_USER='username'
 NP_PASS='password'
-PET_NAME='xX_bestpet_Xx
+PET_NAME='xX_bestpet_Xx'
 ```
 
-in a file called .env in this directory. Then run `./run.sh daemon.py`.
+in a file called .env in this directory. Then run `./run_daemon.sh`.
 
 Additional flags include `USER_AGENT` and `FIREFOX_COOKIES_DB`.
 
 A lot of this code was written with assumptions that only hold true on my
-account (e.g. you only have one pet, for training). So run it at your own risk
-and maybe start the daemon with only a few safe dailies enabled first.
+account. So run it at your own risk and maybe start the daemon with only a few
+safe dailies enabled first. (Comment out most of the tasks in daemon.py)
 
-Produced files include:
+## Produced files
 
 ```
 itemdb.db: sqlite3 database of Neopets items.
-daemon.pickle: pickled dict from daily name to when you last did them.
+g.pickle: pickle of some state we want to persist (see `lib/g.py`).
 nptools.cookies: cookies from curl.
-*.log: various activity-specific log files.
+*.log: various activity-specific log files. e.g. lab_ray.log tracks zap results.
 pages/: copies of all requested pages.
 shop_captchas/: images of captchas when buying items.
 ```
@@ -42,24 +52,21 @@ shop_captchas/: images of captchas when buying items.
 
 ### Site activities
 
-- Food club (depends on age of account; avg. 30-50k/day)
 - Negg Cave (interesting puzzle)
-- Wishing Well (small chance of 300k-600k)
+- Wishing Well (small chance of 300k-600k, probably +ev?)
 - Sakhmet Solitaire (5k/day)
-- Cliffhanger (1500 NP/day)
 - Scarab 21 (5k/day)
+- Neggsweeper (3k/day)
+- Cliffhanger (1500 NP/day)
 - Grave Danger
 - NeoQuest II
 - Cheat
 - Sewage Surfer
-- Shapeshifter
 - Go go go
 - Godori
 - Krawps
-- Wheels
-- Neggsweeper (3k/day)
+- Wheels (requires AWF)
 - NeoPoker
-  - full house: 100NP
 - Turmaculus
 - Monthly freebies: http://www.neopets.com/freebies/index.phtml
 - Potato counter
@@ -69,7 +76,6 @@ shop_captchas/: images of captchas when buying items.
 - Symol Hole
 - Island mystic (until avatar)
 - Quests
-- Mystery pic (really interesting automation problem)
-- Lottery (avatar, and slightly +EV (more if you pick numbers other people don't))
-- Fetch (maze solving with hidden information)
+- Mystery pic (really interesting scraping problem)
 - Qasalan Expellibox (chance of NC every 8 hours)
+- Scratchcard scratching

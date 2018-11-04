@@ -6,6 +6,7 @@ import os
 import re
 import random
 import sys
+import time
 
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -69,7 +70,10 @@ def haggle_price(price):
     result //= 10
     return result
 
-def restock(shop_id, min_profit=4000):
+RESTOCK_LOG_FILE = 'restock.log'
+
+def restock(shop_id, min_profit=3000):
+    log_file = open(RESTOCK_LOG_FILE, 'a')
     inventory.ensure_np(99999)
     np = lib.NeoPage()
     np.get('/objects.phtml', f'obj_type={shop_id}', 'type=shop')
@@ -79,10 +83,6 @@ def restock(shop_id, min_profit=4000):
 
     if not items:
         G.consec_empty_shops += 1
-        if G.consec_empty_shops >= 40:
-            print("Looks like we're restock banned. Backing off.")
-            G.consec_empty_shops = 0
-            return neotime.now_nst() + datetime.timedelta(hours=5)
         return
     G.consec_empty_shops = 0
 
@@ -99,7 +99,7 @@ def restock(shop_id, min_profit=4000):
         # different value won't restock in shops. For a more fine-grained
         # search, should search using image as well.
         prices = [
-            item_db.get_price(name, update=False, max_laxness=5),
+            item_db.get_price(name, image, update=False, max_laxness=5),
             backup_price_data.get(name),
         ]
         prices = [p for p in prices if p]
@@ -138,11 +138,17 @@ def restock(shop_id, min_profit=4000):
                 print('Bought !!!')
                 G.items_stocked[obj_info_id] += 1
                 inventory.always_stock(name)
+                log_file.write(f'{neotime.now_nst()},{shop_id},{name},{obj_info_id},{price},{offer},{true_price},{_x_pwned},1,\n')
+                time.sleep(5)
             elif 'is SOLD OUT!' in np.content:
                 print('Sold out :(')
             else:
                 print('Not bought :( TODO: See what happened')
                 print(f'_x_pwned was {_x_pwned}')
+                log_file.write(f'{neotime.now_nst()},{shop_id},{name},{obj_info_id},{price},{offer},{true_price},{_x_pwned},0,{np.last_file_path}\n')
+                print(np.last_file_path)
+        elif np.contains('Due to massive demand'):
+            print("Didn't wait 5 seconds before purchasing something else?")
         else:
             print(np.last_file_path)
             print("Didn't click item fast enough! :(")

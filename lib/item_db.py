@@ -1,8 +1,9 @@
 # Neopets item database.
 # Since this would be a singleton anyway, I made it a module instead of a full
 # class (that we instantiate only one of).
-from datetime import datetime, timedelta
 from collections import defaultdict
+from datetime import datetime, timedelta
+import os
 import re
 import sqlite3
 
@@ -92,15 +93,16 @@ def update_prices(item_name, laxness=5):
     opts.append('min_price=0')
     opts.append('max_price=999999')
 
-    # Repeatedly search the shop wizard, collecting all results seen.
+    grps_needed = len(char_groups) - laxness
 
     def print_status():
-        found = sum(len(g.markets[md]) for md in obj_info_ids)
-        total = len(obj_info_ids) * (len(char_groups) - laxness)
+        found = sum(min(grps_needed, len(g.markets[i])) for i in obj_info_ids)
+        total = len(obj_info_ids) * grps_needed
         print(f'\r({item_name}: {lowest_price} NP; {found}/{total}; {search_count}) ', end='')
 
+    # Repeatedly search the shop wizard, collecting all results seen.
     try:
-        while not obj_info_ids or any(len(market_data) < len(char_groups) - laxness for market_data in g.markets.values()):
+        while not obj_info_ids or any(len(g.markets[i]) < grps_needed for i in obj_info_ids):
             print_status()
             np.post('/market.phtml', *opts)
             if np.contains('Whoa there, too many'):
@@ -133,7 +135,7 @@ def update_prices(item_name, laxness=5):
             obj_info_ids.add(obj_info_id)
             grp = c2grp[lib.strip_tags(rows[0][0])[0]]
             g.markets[obj_info_id][grp] = market_data
-            if search_count >= 30 * min(1, len(obj_info_ids)): break
+            if search_count >= 30 * max(1, len(obj_info_ids)): break
     except KeyboardInterrupt:
         laxness = len(char_groups) - min(len(g.markets[i]) for i in obj_info_ids) if obj_info_ids else 0
         print(f'Interrupted. Actual laxness is {laxness}')
@@ -144,8 +146,7 @@ def update_prices(item_name, laxness=5):
     # Consolidate results for each item into a quote.
     if obj_info_ids:
         for obj_info_id in obj_info_ids:
-            market_data = g.markets[obj_info_id]
-            level2 = sorted(sum(market_data.values(), []))
+            level2 = sorted(sum(g.markets[obj_info_id].values(), []))
             g.level2_cache[obj_info_id] = level2
             level2_by_item[obj_info_id] = level2
 
@@ -159,8 +160,12 @@ def update_prices(item_name, laxness=5):
             # - the next cheapest is at most 10% more expensive.
             print()
             if len(obj_info_ids) > 1:
-                print(f'{image} ({obj_info_id}):')
+                print(f'({obj_info_id}):')
             for price, stock, link in level2:
+                # Our own prices don't count for pricing purposes
+                if f'owner={os.environ.get("NP_USER")}' in link:
+                    print('Skipping our own shop')
+                    continue
                 np.get(link)
                 res = np.search(r'''<A href=".*?" onClick=".*?"><img src="http://images.neopets.com/items/(.*?)" .*? title="(.*?)" border="1"></a> <br> <b>(.*?)</b>''')
                 if not res:
@@ -189,15 +194,21 @@ def update_prices(item_name, laxness=5):
             result = c.fetchone()
 
             if not result or result[0][0] != item_name:
-                c.execute('''
-                INSERT INTO items (name, image, desc, obj_info_id, last_updated)
-                VALUES (?, ?, ?, ?, datetime('now'))
-                ON CONFLICT (name, image)
-                DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
-                ''', (
-                    name, image, desc, obj_info_id,
-                    desc, obj_info_id,
-                ))
+                for _ in range(2):
+                    try:
+                        c.execute('''
+                        INSERT INTO items (name, image, desc, obj_info_id, last_updated)
+                        VALUES (?, ?, ?, ?, datetime('now'))
+                        ON CONFLICT (name, image)
+                        DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
+                        ''', (
+                            name, image, desc, obj_info_id,
+                            desc, obj_info_id,
+                        ))
+                        break
+                    except sqlite3.IntegrityError:
+                        # TODO: IDK how we end up with bad obj_info_ids
+                        c.execute('''DELETE FROM items WHERE obj_info_id = ?''', (obj_info_id,))
 
             c.execute('''
             UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now') WHERE obj_info_id=?
@@ -244,9 +255,9 @@ def get_market(name, image=None):
     ids = c.fetchall()
     result = {}
     for obj_info_id, in ids:
-        if obj_info_id not in level2_cache:
+        if obj_info_id not in g.level2_cache:
             update_prices(name, laxness=5)
-        result[obj_info_id] = level2_cache[obj_info_id]
+        result[obj_info_id] = g.level2_cache[obj_info_id]
     if len(result) == 1:
         result = list(result.values())[0]
     return result

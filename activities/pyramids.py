@@ -42,8 +42,11 @@ def pyramids():
     print('Pyramids: ', end='')
 
     while True:
-        if np.contains('There are no more available moves!'):
-            link = np.search(r"<b>There are no more available moves!<br><a href='(.*?)'><b>Collect Points</b>")[1]
+        # Check game-over conditions
+        no_moves = np.contains('There are no more available moves!')
+        cleared = np.contains('You have cleared the pyramid!')
+        if no_moves or cleared:
+            link = np.search(r"<br><a href='(.*?)'><b>Collect Points</b>")[1]
             np.get('/games/pyramids/' + link)
             verb = 'Won'
             noun = 'NP'
@@ -59,7 +62,6 @@ def pyramids():
             return None
 
         cur_card = np.search(r"&nbsp; <img src='.*?games/mcards/(.*?).gif'")[1]
-
         cards = []
         links = {}
         rows = np.findall(r"\n<td align='center'>(.*?)</td>")

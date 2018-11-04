@@ -48,6 +48,10 @@ from activities.tyranu_evavu import tyranu_evavu
 from activities.wise_king import wise_king
 from activities.maintain_shop import set_shop_prices, clean_shop_till
 from activities.faerieland_jobs import faerieland_jobs
+from activities.lab_ray import lab_ray
+from activities.shapeshifter import shapeshifter_all
+from activities.lottery import lottery
+from activities.fetch import fetch
 
 import lib
 from lib import neotime
@@ -64,7 +68,7 @@ def appraise_item():
         item = random.choice(items)
         print(f'Learning about {item}')
         try:
-            item_db.update_prices(item, laxness=3)
+            item_db.update_prices(item, laxness=4)
         except item_db.ShopWizardBannedException:
             return neotime.now_nst() + datetime.timedelta(minutes=40)
     else:
@@ -74,7 +78,7 @@ restock_shops = [
     1, # Food
     2, # Magic
     3, # Toys
-    (4, 30000), # Uni's clothing
+    (4, 20000), # Uni's clothing
     7, # Magical books
     8, # Collectable cards
     9, # Neopian petpets
@@ -90,12 +94,13 @@ restock_shops = [
     98, # Plushie palace
 ]
 
-# Become very interested in 5 shops for a while, then switch it up.
 def next_restocks_f():
     while True:
-        shops = random.sample(restock_shops, 5)
-        for _ in range(random.randint(1, 5)):
-            yield shops
+        shops = random.sample(restock_shops, 10)
+        shops1 = shops[:5]
+        shops2 = shops[5:]
+        for i in range(random.randint(2, 7)):
+            yield shops1 if i % 2 == 0 else shops2
             if g.consec_empty_shops >= 5:
                 break
 
@@ -112,10 +117,14 @@ def my_restock():
         times.append(res or neotime.now_nst())
         time.sleep(0.5)
     result = max(times)
-    result += datetime.timedelta(seconds=random.randint(10, 50))
+    result += datetime.timedelta(seconds=random.randint(30, 90))
 
     # Soft backoff
-    if g.consec_empty_shops >= 30:
+    if g.consec_empty_shops >= 40:
+        print("Looks like we're restock banned. Backing off for 3 hours.")
+        g.consec_empty_shops = 30
+        result += datetime.timedelta(hours=3)
+    elif g.consec_empty_shops >= 30:
         result += datetime.timedelta(minutes=5)
     elif g.consec_empty_shops >= 20:
         result += datetime.timedelta(minutes=2)
@@ -146,13 +155,17 @@ tasks = [
     ('rich_slorg', rich_slorg, daily(1)),
     ('stock_market', stock_market, daily(1)),
     ('tombola', tombola, daily(1)),
+    ('coconut_shy', coconut_shy, daily(1)),
     ('trudys_surprise', trudys_surprise, daily(1)),
+    ('lab_ray', lab_ray, daily(1)),
+    ('lottery', lottery, daily(1)),
     ('wise_king', wise_king, neotime.skip_lunch(daily(1))),
     ('food_club', food_club, neotime.next_day_at(hour=12, minute=0, second=0)),
 
     # Longer-running dailies that we do after normal dailies
     ('battledome', battledome, daily(2)),
-    ('kacheek_seek', kacheek_seek, daily(2)),
+    #('kacheek_seek', kacheek_seek, daily(2)),
+    #('shapeshifter', shapeshifter_all, daily(2)),
     ('pyramids', pyramids, neotime.immediate),
     #('faerieland_jobs_1', lambda: faerieland_jobs(3), daily(2)),
     # TODO: Do 2 more jobs after first 3.
@@ -161,7 +174,7 @@ tasks = [
     ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
     #('buy_scratchcard', buy_scratchcard, neotime.after(hours=1, minutes=1)), # For boon
     ('fishing', fishing, neotime.after(hours=2)),
-    ('healing_springs', healing_springs, neotime.after(minutes=35)),
+    #('healing_springs', healing_springs, neotime.after(minutes=35)),
     ('shrine', shrine, neotime.after(hours=13)),
     ('snowager', snowager, neotime.next_snowager_time),
 
@@ -173,9 +186,10 @@ tasks = [
 
     # ooh oooh ooh oooo you gotta get cho money
     ('clean_shop_till', clean_shop_till, daily(1)),
-    ('restock', my_restock, neotime.after(seconds=20)),
+    ('restock', my_restock, neotime.immediate),
     # TODO: shop wizard ban detect and retry
     ('set_shop_prices', set_shop_prices, neotime.after(hours=1)),
+    ('fetch', lambda: fetch(verbose=False) and None or None, neotime.after(minutes=5)),
     
     # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),

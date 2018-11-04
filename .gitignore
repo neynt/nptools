@@ -5,6 +5,7 @@ __pycache__
 nptools.cookies
 *.log
 *.pickle
+*.bak
 *.db
 Session.vim
 venv

@@ -14,7 +14,7 @@ def list_items():
     np.get('/inventory.phtml')
     items = np.findall(r'\n<td class=.*?>.*?</td>')
     for item in items:
-        attr = re.search(r'<td class="(.*?)"><a href="javascript:;" onclick="openwin\((\d+)\);"><img src="http://images.neopets.com/items/(.*?)" width="80" height="80" title="(.*?)" alt="(.*?)" border="0" class="(.*?)"></a><br>(.*?)(<hr noshade size="1" color="#DEDEDE"><span class="attr medText">(.*?)</span>)?</td>', item)
+        attr = re.search(r'<td class="(.*?)"><a href="javascript:;" onclick="openwin\((\d+)\);"><img src="http://images.neopets.com/items/(.*?)" width="80" height="80" title="(.*?)" alt="(.*?)" border="0" class="(.*?)"></a><br>(.*?)(<hr noshade size="1" color="#DEDEDE"><span class="attr medText">(.*?)</span>)?</td>', item, flags=re.DOTALL)
         item_id = attr[2]
         item_image = attr[3]
         item_desc = attr[4]
@@ -54,8 +54,7 @@ def ensure_np(amount):
     np.get('/bank.phtml')
     if np.contains('Collect Interest ('):
         bank_interest.bank_interest()
-    nps = np.search(r'''<a id='npanchor' href="/inventory.phtml">(.*?)</a>''')[1]
-    nps = int(nps.replace(',', ''))
+    nps = np.current_np()
     if nps >= amount: return
     need = amount - nps
     denom = 10**max(len(str(need)), len(str(amount)))

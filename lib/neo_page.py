@@ -181,6 +181,12 @@ class NeoPage:
     def findall(self, regex):
         r = re.compile(regex, re.DOTALL)
         return r.findall(self.content)
+
+    def active_pet_name(self):
+        return self.search('<td class="activePet sf" align="center"><a href="/customise/\?view=(.*?)"><b>')[1]
+
+    def current_np(self):
+        return util.amt(self.search(r'''<a id='npanchor' href="/inventory.phtml">(.*?)</a>''')[1])
     
     def set_referer_path(self, path):
         self.referer = self.base_url + path
@@ -189,4 +195,4 @@ class NeoPage:
         self.referer = url
     
     def login(self, user, pwd):
-        self.post('/login.phtml', f'username={user}&password={pwd}')
+        self.post('/login.phtml', f'username={user}', f'password={pwd}')

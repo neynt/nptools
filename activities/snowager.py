@@ -15,7 +15,7 @@ def snowager():
     if np.contains('You dont want to try and enter again'):
         print('Snowager: Already done.')
         return dont_do_again
-    result = np.search(r'<p>(.*?)<p></center><center>')
+    result = np.search(r'<p>(.*?)<p>.*?</center><center>')
     if result:
         result = lib.strip_tags(result[1])
         print(f'Snowager: {result}')

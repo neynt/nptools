@@ -13,6 +13,8 @@ def set_shop_prices():
 
     g.items_stocked.clear()
     lim = 30
+    ub_count = 0
+    total_prices = 0
     while True:
         np.get('/market.phtml', 'order_by=id', 'type=your', f'lim={lim}')
         has_next = "<input type='submit' name='subbynext' value='Next 30'>" in np.content
@@ -21,6 +23,7 @@ def set_shop_prices():
         args.append('order_by=')
         args.append('view=')
         results = shop_item_re.findall(np.content)
+        changed = False
         for (name, image, stock, category, obj_id_key, obj_id_val, old_cost_key,
                 old_price, cost_key, desc, back_to_inv_key) in results:
             stock = int(stock)
@@ -33,26 +36,32 @@ def set_shop_prices():
 
             my_price = old_price
             try:
-                true_price = item_db.get_price(name, image, max_laxness=3, max_age=timedelta(days=7))
+                true_price = item_db.get_price(name, image, max_laxness=4, max_age=timedelta(days=7))
                 if true_price == None:
                     pass
                 elif type(true_price) == dict:
                     print(f'Warning: {name} has multiple forms: {true_price}')
                 elif true_price >= 1000000:
+                    ub_count += 1
                     print(f'Warning: {name} is unbuyable')
+                    my_price = 0
                 else:
                     my_price = true_price - 1
             except item_db.ShopWizardBannedException:
                 pass
             if my_price != old_price:
                 print(f'Setting {name} from {old_price} to {my_price} NP')
+                changed = True
+            total_prices += my_price
             args.append(f'{cost_key}={my_price}')
             args.append(f'{back_to_inv_key}=0')
         args.append('obj_name=')
-        np.post('/process_market.phtml', *args)
+        if changed:
+            np.post('/process_market.phtml', *args)
         lim += 30
         if not has_next:
             break
+    print(f'Shop has {total_prices} NP worth of items for sale ({ub_count} unbuyable)')
 
 SALES_LOG_FILE = 'shop_sales.log'
 

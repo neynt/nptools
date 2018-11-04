@@ -2,33 +2,37 @@
 # multiple activities.
 import os
 import pickle
+import shutil
 from datetime import datetime, timedelta
 
 from collections import defaultdict
 
 class TTLCache:
-    data = {}
-    insert_time = {}
-
-    def __init__(self, ttl, null_value=None):
+    def __init__(self, ttl, data=None):
+        self.data = {}
+        self.insert_time = {}
         self.ttl = ttl
-        self.null_value = null_value
+        if self.data:
+            for k, v in self.data.items():
+                self.put(k, v)
 
     def put(self, key, value):
         self.data[key] = value
         self.insert_time[key] = datetime.utcnow()
 
     def get(self, key):
+        if key not in self.insert_time:
+            return None
         if self.insert_time[key] + self.ttl < datetime.utcnow():
             del self.data[key]
             del self.insert_time[key]
-            return self.null_value
+            return None
         else:
             return self.data[key]
 
     def keys(self):
         for key in list(self.data.keys()):
-            if self.get(key) != self.null_value:
+            if self.get(key) != None:
                 yield key
 
     def values(self):
@@ -44,6 +48,13 @@ class TTLCache:
 
     __setitem__ = put
     __getitem__ = get
+
+    def __repr__(self):
+        return 'TTLCache({}, {{{}}})'.format(
+            self.ttl,
+            ', '.join(f'{k}: {v}' for k, v in self.items()),
+        )
+    __str__ = __repr__
 
 PICKLE_FILE = 'g.pickle'
 
@@ -81,3 +92,6 @@ def load_data():
 def save_data():
     g = globals()
     pickle.dump({v: transform.get(v, lambda x:x)(g[v]) for v in global_variables}, open(PICKLE_FILE, 'wb'))
+    # Backup copy will only be made if pickle succeeds.
+    shutil.copyfile(PICKLE_FILE, f'{PICKLE_FILE}.bak')
+    print(f'Pickle success. Backup saved at {PICKLE_FILE}.bak')

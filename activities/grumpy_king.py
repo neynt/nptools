@@ -26,6 +26,9 @@ def grumpy_king():
     np = lib.NeoPage()
     for _ in range(2):
         np.get(path)
+        if np.contains('try back in an hour'):
+            print(f'Grumpy King: At lunch.')
+            return
         parts = np.findall(r'<div id="(.)p(\d+)Div">(.*?)</div>')
         params = make_params(parts, fixed_parts)
         params_hum = ' '.join(p.split('=')[1] for p in params)
