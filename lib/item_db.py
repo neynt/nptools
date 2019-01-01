@@ -14,10 +14,13 @@ from .neo_page import NeoPage
 ITEM_DB_FILE = 'itemdb.db'
 UNBUYABLE_PRICE = 1000001
 
-conn = sqlite3.connect(ITEM_DB_FILE, detect_types=sqlite3.PARSE_DECLTYPES)
-
 class ShopWizardBannedException(Exception):
     pass
+
+def make_conn():
+    return sqlite3.connect(ITEM_DB_FILE, detect_types=sqlite3.PARSE_DECLTYPES)
+
+conn = make_conn()
 
 def update_schema():
     # Really nice simple schema update scheme. None of that versioning
@@ -64,6 +67,44 @@ def query(q, *args):
     result = c.execute(q, args)
     conn.commit()
     return c
+
+# General all-purpose item information writer.
+def update_item(name, image=None, desc=None, obj_info_id=None, price=None, price_laxness=None):
+    c = conn.cursor()
+
+    selectors = []
+    if name and image:
+        selectors.append(('(name, image)', '(?, ?)', ' WHERE name=? AND image=?', (name, image)))
+    if obj_info_id:
+        selectors.append(('(obj_info_id)', '(?)', ' WHERE obj_info_id=?', (obj_info_id,)))
+    selectors.append(('(name)', '(?)', ' WHERE name=?', (name,)))
+
+    # Try to find an existing row.
+    for _, _, where_clause, where_stuff in selectors:
+        c.execute('''
+        SELECT count(*) FROM items
+        ''' + where_clause, where_stuff)
+        found, = c.fetchone()
+        if found == 1:
+            break
+        if found > 1:
+            raise "Most specific selector is ambiguous."
+    else:
+        # No existing row; INSERT the most specific one we have.
+        fields, qs, where_clause, where_stuff = selectors[0]
+        print(f'Learned about new item: {where_stuff}')
+        c.execute(f'''INSERT INTO items {fields} VALUES {qs}''', where_stuff)
+
+    if obj_info_id: c.execute('UPDATE items SET obj_info_id=?' + where_clause, (obj_info_id,) + where_stuff)
+    if desc: c.execute('UPDATE items SET desc=?' + where_clause, (desc,) + where_stuff)
+    if price:
+        if not price_laxness:
+            raise "Price must be updated with laxness."
+        c.execute('''
+        UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now')
+        ''' + where_clause, (price, price_laxness) + where_stuff)
+
+    c.execute('''UPDATE items SET last_updated=datetime('now')''' + where_clause, where_stuff)
 
 # Updates prices for items with a given name by repeatedly searching with the
 # shop wizard. Identifies when there are multiple items with the same name and
@@ -187,55 +228,24 @@ def update_prices(item_name, laxness=5):
 
             print(f'The price of {item_name} (id {obj_info_id}) is {cur_price} NP.')
 
-            c = conn.cursor()
-            c.execute('''
-            SELECT name FROM items WHERE obj_info_id=?
-            ''', (obj_info_id,))
-            result = c.fetchone()
-
-            if not result or result[0][0] != item_name:
-                for _ in range(2):
-                    try:
-                        c.execute('''
-                        INSERT INTO items (name, image, desc, obj_info_id, last_updated)
-                        VALUES (?, ?, ?, ?, datetime('now'))
-                        ON CONFLICT (name, image)
-                        DO UPDATE SET desc=?, obj_info_id=?, last_updated=datetime('now')
-                        ''', (
-                            name, image, desc, obj_info_id,
-                            desc, obj_info_id,
-                        ))
-                        break
-                    except sqlite3.IntegrityError:
-                        # TODO: IDK how we end up with bad obj_info_ids
-                        c.execute('''DELETE FROM items WHERE obj_info_id = ?''', (obj_info_id,))
-
-            c.execute('''
-            UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now') WHERE obj_info_id=?
-            ''', (cur_price, laxness, obj_info_id))
+            for _ in range(2):
+                try:
+                    update_item(name, image=image, desc=desc,
+                            obj_info_id=obj_info_id, price=cur_price,
+                            price_laxness=laxness)
+                    break
+                except sqlite3.IntegrityError:
+                    # TODO: IDK how we end up with bad obj_info_ids
+                    c = conn.cursor()
+                    c.execute('''DELETE FROM items WHERE obj_info_id = ?''', (obj_info_id,))
     else:
         print(f'It seems {item_name} is unbuyable.')
         # Item could not be found; assume it's unbuyable.
         # We use a cheap price estimate of 1,000,001 NP.
-        # TODO: Items inserted in this way will have a wonky image property.
+        # TODO: Items inserted in this way will have a wonky image property
+        # since we have no way to look up their image.
 
-        c = conn.cursor()
-        c.execute('''
-        SELECT image FROM items WHERE name = ?
-        ''', (item_name,))
-        result = c.fetchone()
-
-        if not result:
-            c.execute('''
-            INSERT INTO items (name, last_updated)
-            VALUES (?, datetime('now'))
-            ON CONFLICT (name, image)
-            DO UPDATE SET last_updated=datetime('now')
-            ''', (item_name,))
-
-        c.execute('''
-        UPDATE items SET price=?, price_laxness=?, price_last_updated=datetime('now') WHERE name=?
-        ''', (1000001, laxness, item_name))
+        update_item(item_name, price=1000001, price_laxness=laxness)
 
     conn.commit()
     return level2_by_item

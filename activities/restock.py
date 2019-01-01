@@ -79,9 +79,9 @@ def restock(shop_id, min_profit=3000):
     np.get('/objects.phtml', f'obj_type={shop_id}', 'type=shop')
     items = re_shop_item.findall(np.content)
     shop_name = re_header.search(np.content)[1].strip()
-    print(f'{len(items)} items found at {shop_name}.')
 
     if not items:
+        #print(f'No items found at {shop_name}.')
         G.consec_empty_shops += 1
         return
     G.consec_empty_shops = 0
@@ -114,12 +114,14 @@ def restock(shop_id, min_profit=3000):
             best = (name, price, obj_info_id, stock_id, brr)
 
     if not best:
+        print(f'No acceptable items found at {shop_name}.')
         return
 
     name, price, obj_info_id, stock_id, brr = best
     profit, profit_margin, true_price = best_score
     if profit >= min_profit and profit_margin >= MIN_PROFIT_MARGIN:
         offer = haggle_price(price)
+        print(f'{len(items)} items found at {shop_name}.')
         print(f'Trying to buy {name} for {offer} !! (price {price}; worth {true_price} NP)')
 
         np.get('/haggle.phtml', f'obj_info_id={obj_info_id}', f'stock_id={stock_id}', f'brr={brr}')
@@ -156,11 +158,10 @@ def restock(shop_id, min_profit=3000):
         # store again!
         return restock(shop_id, min_profit=min_profit)
     else:
-        print(f'No worthy items found. Best was {name} (price {price}; worth {true_price} NP)')
+        #print(f'{len(items)} items found at {shop_name}. No good ones; best was {name} (price {price}; worth {true_price} NP)')
+        pass
 
-    # Learn about unknown items
-    #for obj_info_id, stock_id, g, brr, image, desc, name, stock, price in items:
-    #    try:
-    #        item_db.get_price(name)
-    #    except item_db.ShopWizardBannedException:
-    #        return
+    # Queue knowledge update of items not in backup price data.
+    for obj_info_id, stock_id, g, brr, image, desc, name, stock, price in items:
+        if name not in backup_price_data:
+            item_db.update_item(name, image, desc=desc)

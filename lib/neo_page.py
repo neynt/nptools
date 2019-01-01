@@ -22,17 +22,18 @@ USER_AGENT = os.environ.get('USER_AGENT', 'Mozilla/5.0')
 COOKIE_FILE = 'nptools.cookies'
 
 class NeoPage:
-    def __init__(self, path=None, base_url=None):
+    def __init__(self, path=None, base_url=None, save_pages=False):
         self.byte_content = b''
         self.content = ''
         self.last_file_path = ''
         self.referer = ''
         self.base_url = base_url or 'http://www.neopets.com'
+        self.save_pages = save_pages
         if path:
             self.get(path)
 
-    def save_to_file(self, filename):
-        open(filename, 'wb').write(self.byte_content)
+    def save_to_file(self, filename=None):
+        open(filename or self.last_file_path, 'wb').write(self.byte_content)
 
     def load_file(self, filename):
         self.content = open(filename, 'r').read()
@@ -140,7 +141,8 @@ class NeoPage:
         os.makedirs(path, exist_ok=True)
         time_ms = int(time.time() * 1000)
         self.last_file_path = f'{path}/{filename}_{tag}@{time_ms}'
-        self.save_to_file(self.last_file_path)
+        if self.save_pages:
+            self.save_to_file(self.last_file_path)
 
     def get_url(self, url, *params, **kwargs):
         self.get_base(url, *params, **kwargs)

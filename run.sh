@@ -4,4 +4,4 @@ set -o allexport
 source .env
 set +o allexport
 export PYTHONPATH="$(pwd)/:$PYTHONPATH"
-python3 $@
+python3 "$@"

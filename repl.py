@@ -12,4 +12,4 @@ from lib import jellyneo
 
 np = lib.NeoPage()
 g.load_data()
-atexit.register(daemon.onexit)
+#atexit.register(daemon.onexit)

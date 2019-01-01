@@ -1,6 +1,9 @@
 from collections import defaultdict
 import re
 import subprocess
+from datetime import datetime
+import time
+import os
 
 from lib import NeoPage
 
@@ -27,7 +30,7 @@ def make_kvho_input(goal_grid, shape_grids, goal_idx):
 
     return '\n'.join(parts)
 
-def shapeshifter():
+def shapeshifter(timeout=10*60):
     np = NeoPage()
     np.get(path_index)
     starting_np = np.current_np()
@@ -63,38 +66,88 @@ def shapeshifter():
             grid.append([int('square.gif' in tile_info) for tile_info in tiles])
         shape_grids.append(grid)
 
+    # Compute kvho difficulty.
+    R = len(goal_grid)
+    C = len(goal_grid[0])
+    min_shifts_needed = R * C * (N - 1) - sum(map(sum, goal_grid))
+    shifts_available = sum(sum(sum(rows) for rows in grid) for grid in shape_grids)
+    num_overshifts = shifts_available - min_shifts_needed
+    num_flips = num_overshifts // N
+    print(f'Puzzle permits {num_flips} flips ({num_overshifts} overshifts)')
+
     kvho_input = make_kvho_input(goal_grid, shape_grids, goal_idx)
 
-    proc = subprocess.run(['c/ss'], input=kvho_input, encoding='utf-8', capture_output=True)
+    print(f'Waiting for kvho.')
+    start_time = datetime.now()
+
     positions = []
-    for line in proc.stdout.splitlines():
-        if line.startswith(' '):
-            x = list(map(int, line.replace('x', '').replace('=', '').strip().split()))
-            for c, r, _ in zip(x[::3], x[1::3], x[2::3]):
-                positions.append((r, c))
+    try:
+        proc = subprocess.run(['c/ss'], input=kvho_input, encoding='utf-8', capture_output=True, timeout=timeout)
+        for line in proc.stdout.splitlines():
+            if 'x' in line and '=' in line:
+                x = list(map(int, line.replace('x', ' ').replace('=', ' ').strip().split()))
+                for c, r, _ in zip(x[::3], x[1::3], x[2::3]):
+                    positions.append((r, c))
+        print(f'Solution found in {datetime.now() - start_time}: {positions}')
+    except subprocess.TimeoutExpired:
+        print(f'Solution not found in time. Throwing this puzzle to get a new one.')
+        for _ in shape_grids:
+            positions.append((0, 0))
 
-    print(f'Solution found: {positions}')
-
-    for shape, (r, c) in zip(shape_grids, positions):
-        print(f'Placing piece {shape} at {r}, {c}')
+    for i, (shape, (r, c)) in enumerate(zip(shape_grids, positions)):
+        print(f'\rPlacing piece {i+1}/{len(positions)}', end='')
         np.set_referer_path(path_game)
         np.get(path_process, 'type=action', f'posx={c}', f'posy={r}')
+        time.sleep(0.5)
+    print()
 
     if np.contains('You Won!'):
         np.set_referer_path(path_game)
         np.post(path_process + '?type=init')
         ending_np = np.current_np()
         print(f'Done level, earned {ending_np - starting_np} NP')
+        return 1
     elif np.contains('reached your max neopoints'):
         print('Done for today.')
-        return True
+        return 2
     else:
         print('Did not solve level??')
+        return 0
 
 def shapeshifter_all():
     while True:
-        if shapeshifter():
+        if shapeshifter() == 2:
             break
 
+def shapeshifter_one():
+    timeout = 10
+    while True:
+        print(f'Timeout {timeout} sec.')
+        result = shapeshifter(timeout)
+        if result == 0:
+            timeout = round(timeout * 1.5)
+        else:
+            break
+
+def goto_level(lvl):
+    np = NeoPage()
+    #np.set_referer_path(path_game)
+    #np.post(path_process, 'type=reset_this_thing', 'username={os.environ["NP_USER"]}')
+    #print(np.last_file_path)
+
+    #if shapeshifter(timeout=0) == 2:
+    #    print('Shapeshifter: Already done.')
+    #    return
+
+    np.set_referer_path(path_game)
+    np.post(path_process + '?type=init', f'past_level={lvl}')
+    print(np.last_file_path)
+
+def shapeshifter_daily():
+    goto_level(94)
+    while shapeshifter(timeout=5) != 2:
+        pass
+
 if __name__ == '__main__':
-    shapeshifter()
+    #shapeshifter_one()
+    goto_level(94)

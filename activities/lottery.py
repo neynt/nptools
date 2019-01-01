@@ -2,6 +2,7 @@ import itertools
 import random
 
 from lib import NeoPage
+from lib import util
 
 path = '/games/lottery.phtml'
 path_process = '/games/process_lottery.phtml'
@@ -56,5 +57,21 @@ def lottery():
         np.set_referer(ref)
         np.post(path_process, *[f'{x}={n}' for x, n in zip('one two three four five six'.split(), ticket)])
 
+def stats():
+    np = NeoPage()
+    np.get(path)
+    tbl = np.search(r'<table align=center cellpadding=3 cellspacing=0 border=0>(.*?)</table>')[0]
+    rows = util.table_to_tuples(tbl)
+
+    freqs = {i: 0 for i in range(1, 31)}
+    for date, prize, winners, share, matches_needed, numbers in rows[1:]:
+        nums = map(int, numbers.split(','))
+        for n in nums:
+            freqs[n] += 1
+
+    for n, freq in sorted(freqs.items()):
+        print(f'{n}, {freq}')
+
 if __name__ == '__main__':
-    lottery()
+    #lottery()
+    stats()

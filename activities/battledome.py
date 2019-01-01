@@ -15,14 +15,15 @@ path_start_fight = '/dome/ajax/startFight.php'
 path_arena = '/dome/arena.phtml'
 path_arena_ajax = '/dome/ajax/arena.php'
 
-#npc_id = 31 # Chia Clown
+#npc_id = 31  # Chia Clown
 #npc_id = 215 # Petty Pilferer
 #npc_id = 222 # Assistant Scientist
 #npc_id = 218 # Amateur Insider
-npc_id = 206 # S750 Kreludan Defender Robot
-#npc_id = 26 # Koi Warrior
+#npc_id = 221 # Grumpy Mummy
+#npc_id = 206 # S750 Kreludan Defender Robot
+npc_id = 26  # Koi Warrior
 
-toughness = 3
+toughness = 1
 
 def battledome(forever = False):
     np = NeoPage(path)
@@ -53,7 +54,7 @@ def battledome(forever = False):
             resp = json.loads(np.content)
             abils = resp['p1']['abils']
             chosen_abil = ''
-            for abil in ['14', '17', '10']:
+            for abil in ['21', '2', '14', '17', '1']:
                 if abil in abils and not abils[abil]['hasCooldown']:
                     chosen_abil = abil
                     break

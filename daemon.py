@@ -31,7 +31,7 @@ from activities.kiko_pop import kiko_pop
 from activities.lunar_temple import lunar_temple
 from activities.magma_pool import magma_pool
 from activities.omelette import omelette
-from activities.pirate_academy import pirate_academy
+import activities.training as training
 from activities.food_club import food_club
 from activities.plushie import plushie
 from activities.plushie_tycoon import plushie_tycoon
@@ -49,9 +49,10 @@ from activities.wise_king import wise_king
 from activities.maintain_shop import set_shop_prices, clean_shop_till
 from activities.faerieland_jobs import faerieland_jobs
 from activities.lab_ray import lab_ray
-from activities.shapeshifter import shapeshifter_all
 from activities.lottery import lottery
 from activities.fetch import fetch
+from activities.expellibox import expellibox
+from activities.shapeshifter import shapeshifter_daily
 
 import lib
 from lib import neotime
@@ -60,31 +61,37 @@ from lib import inventory
 from lib import item_db
 import lib.g as g
 
-def appraise_item():
-    # Identifies the price of an item that we know about, but not the price of.
-    items = item_db.query('SELECT name FROM items WHERE price IS NULL').fetchall()
-    items = sum((list(x) for x in items), [])
-    if items:
-        item = random.choice(items)
-        print(f'Learning about {item}')
-        try:
-            item_db.update_prices(item, laxness=4)
-        except item_db.ShopWizardBannedException:
-            return neotime.now_nst() + datetime.timedelta(minutes=40)
-    else:
-        return now_nst() + datetime.timedelta(minutes=20)
+def appraise_items():
+    # Identifies the price of items that we know about, but not the price of.
+    while True:
+        items = item_db.query('SELECT name FROM items WHERE price IS NULL').fetchall()
+        items = sum((list(x) for x in items), [])
+        if items:
+            item = random.choice(items)
+            print(f'Appraising {item} ({len(items)} items left)')
+            try:
+                item_db.update_prices(item, laxness=4)
+            except item_db.ShopWizardBannedException:
+                return
+        else:
+            return
 
+# SS2: 13 (pharmacy), 41 (furniture), 108 (mystical surroundings)
 restock_shops = [
     1, # Food
     2, # Magic
     3, # Toys
-    (4, 20000), # Uni's clothing
+    (4, 15000), # Uni's clothing
+    5, # Grooming parlour
     7, # Magical books
     8, # Collectable cards
     9, # Neopian petpets
     10, # Defense magic
     14, # Chocolate factory
+    15, # Bakery
+    16, # Health foods
     30, # Spooky food
+    37, # Super Happy Icy Fun Snow Shop
     38, # Faerie books
     51, # Sutek's scrolls
     58, # Post office
@@ -133,7 +140,11 @@ def my_restock():
     return result
 
 def clean_inventory():
-    inventory.quickstock(exclude=['Five Dubloon Coin', 'Pant Devil Attractor'])
+    inventory.quickstock(exclude=['Pant Devil Attractor'])
+
+def save_state():
+    print('Saving global state to g.pickle')
+    g.save_data()
 
 # List[Tuple[String, Callable[[], None], Callable[[datetime], Optional[datetime]]]]
 tasks = [
@@ -164,9 +175,9 @@ tasks = [
 
     # Longer-running dailies that we do after normal dailies
     ('battledome', battledome, daily(2)),
+    #('shapeshifter', shapeshifter_daily, daily(2)),
     #('kacheek_seek', kacheek_seek, daily(2)),
-    #('shapeshifter', shapeshifter_all, daily(2)),
-    ('pyramids', pyramids, neotime.immediate),
+    #('pyramids', pyramids, neotime.immediate),
     #('faerieland_jobs_1', lambda: faerieland_jobs(3), daily(2)),
     # TODO: Do 2 more jobs after first 3.
 
@@ -174,25 +185,30 @@ tasks = [
     ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
     #('buy_scratchcard', buy_scratchcard, neotime.after(hours=1, minutes=1)), # For boon
     ('fishing', fishing, neotime.after(hours=2)),
-    #('healing_springs', healing_springs, neotime.after(minutes=35)),
+    ('healing_springs', healing_springs, neotime.after(minutes=95)),
     ('shrine', shrine, neotime.after(hours=13)),
     ('snowager', snowager, neotime.next_snowager_time),
+    ('expellibox', expellibox, neotime.after(hours=8, minutes=1)),
 
     # Housekeeping
     #('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
-    ('appraise_item', appraise_item, neotime.after(minutes=5)),
-    ('pirate_academy', pirate_academy, neotime.immediate),
-    ('clean inventory', clean_inventory, neotime.after(hours=1)),
+    ('appraise_items', appraise_items, neotime.next_hour_at(minute=50, second=0)),
+    #('pirate_academy', training.pirate_academy, neotime.immediate),
+    ('island_training', training.island_training, neotime.immediate),
+    ('clean inventory', clean_inventory, neotime.next_hour_at(minute=30, second=0)),
 
     # ooh oooh ooh oooo you gotta get cho money
     ('clean_shop_till', clean_shop_till, daily(1)),
     ('restock', my_restock, neotime.immediate),
     # TODO: shop wizard ban detect and retry
-    ('set_shop_prices', set_shop_prices, neotime.after(hours=1)),
-    ('fetch', lambda: fetch(verbose=False) and None or None, neotime.after(minutes=5)),
+    ('set_shop_prices', set_shop_prices, neotime.next_hour_at(minute=40, second=0)),
+    #('fetch', lambda: fetch(verbose=False) and None or None, neotime.after(minutes=5)),
     
     # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),
+
+    # Saving state
+    ('save_state', save_state, neotime.after(minutes=15)),
 ]
 
 # Prints seconds as "1d12h34m56.7s"
@@ -225,13 +241,9 @@ def ensure_login():
         else:
             print('Logged in.')
 
-def onexit():
-    print('Saving global state to g.pickle')
-    g.save_data()
-
 def main():
     g.load_data()
-    atexit.register(onexit)
+    atexit.register(save_state)
 
     for name, f, _next_time in tasks:
         if name not in g.last_done:

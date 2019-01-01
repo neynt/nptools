@@ -17,9 +17,12 @@ def faerie_caverns():
                     print("Dead end!")
                     break
                 elif np.contains("Click to see what you've found"):
+                    print("Winning...")
                     continue
                 elif np.contains('faerie_cave_success.gif'):
                     print("Won!")
+                    np.save_to_file()
+                    print(np.last_file_path)
                     break
                 else:
                     print("In the Faerie Caverns...")

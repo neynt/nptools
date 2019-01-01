@@ -4,9 +4,7 @@ import re
 
 import lib
 from lib import neotime
-
-path = '/pirates/academy.phtml'
-path_process = '/pirates/process_academy.phtml'
+from lib import inventory
 
 # Goal: Trains your pet at the pirate academy, prioritizing skills in this
 # order, and trying to keep all skills level: Str, Def, Hp, Mov, Lvl
@@ -18,7 +16,7 @@ path_process = '/pirates/process_academy.phtml'
 #   - Obtains NP from bank if necessary
 # - Integrate with daemon (dynamic next times)
 
-def pirate_academy():
+def base_academy(path, path_process):
     np = lib.NeoPage()
     np.get(path, 'type=status')
 
@@ -26,7 +24,6 @@ def pirate_academy():
     trs = re.findall(r'<tr>(.*?)</tr>', table)
 
     finish_times = []
-    trained = False
     for tr1, tr2 in zip(trs[::2], trs[1::2]):
         pet_name, status = re.search(r'<b>(.*?) \(Level \d+\) is (.*?)</b>', tr1).group(1, 2)
         print(f'{pet_name}: {status}')
@@ -55,8 +52,19 @@ def pirate_academy():
             result = lib.strip_tags(np.content.splitlines()[-1])
             print(f'Finished course for {pet_name}. {result}')
 
-        # Start a new course, if none selected.
-        if "<input type='hidden' name='type' value='pay'>" not in tr2:
+        want_money_indicators = [
+            "<input type='hidden' name='type' value='pay'>",
+            'has not been paid for yet',
+        ]
+        if any(x in tr2 for x in want_money_indicators):
+            # Pay for current course.
+            np.get(path)
+            items = re.findall('<b>([\w \-]+?)</b><img', tr2)
+            for item in items:
+                inventory.withdraw_sdb(item)
+            np.post(path_process, f'pet_name={pet_name}', 'type=pay')
+        else:
+            # Start a new course
             np.get(path, 'type=courses')
             # TODO: Take advantage of island training school's endurance to 3x health feature.
             skill = None
@@ -69,16 +77,22 @@ def pirate_academy():
             print(f'Training {skill} for {pet_name}')
             np.post(path_process, 'type=start', f'course_type={skill}', f'pet_name={pet_name}')
 
-        # Pay for it.
-        # TODO: Acquire payment if necessary.
-        np.get(path)
-        np.post(path_process, f'pet_name={pet_name}', 'type=pay')
-        trained = True
-
-    if trained:
-        return pirate_academy()
+    if len(finish_times) == 0:
+        return base_academy(path, path_process)
     else:
         return neotime.now_nst() + min(finish_times) + datetime.timedelta(minutes=1)
 
+def pirate_academy():
+    path = '/pirates/academy.phtml'
+    path_process = '/pirates/process_academy.phtml'
+    return base_academy(path, path_process)
+
+def island_training():
+    path = '/island/training.phtml'
+    path_process = '/island/process_training.phtml'
+    return base_academy(path, path_process)
+
 if __name__ == '__main__':
-    print(pirate_academy())
+    #print(pirate_academy())
+    island_training()
+    #inventory.withdraw_sdb('Vo Codestone')

@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# TODO: Check an external website for odds changes and take those into account.
-
 from collections import defaultdict
 import itertools
 import glob
@@ -294,11 +291,11 @@ def psychic_strategy(rnd, max_win):
         probs.append([1 if p.pirate == rnd.winners[i] else 0 for p in arena_pirates])
     return best_bets_from_probs(probs, rnd, max_win)
 
-# Maximize TER. We assume that Neopets calculates the true probability of each
-# pirate winning the round, and sets initial odds by rounding down the fair
-# odds (to a minimum of 2:1 whenever the true win chance is > 1/3). This allows
-# for profit when pirates with true win probability > 0.5 get a 2:1 payoff, as
-# well as when odds change favorably.
+# Maximize TER. We assume that Neopets calculates (or generates) some true
+# probability of each pirate winning the round, and sets initial odds by
+# rounding down the fair odds (to a minimum of 2:1 whenever the true win chance
+# is > 1/3). This allows for profit when pirates with true win probability >
+# 0.5 get a 2:1 payoff, as well as when odds change favorably.
 def maxter_strategy_base(get_odds):
     def strat(rnd, max_win):
         probs = []
@@ -412,9 +409,9 @@ def experiment():
     strategies = [
         ('psychic', lambda _: psychic_strategy),
         ('maxter', lambda _: maxter_strategy),
-        #('maxter_close', lambda _: maxter_closing_strategy),
+        ('maxter_close', lambda _: maxter_closing_strategy),
         ('maxter_fa', learn_maxter_fa_strategy),
-        #('priors', learn_prior_strategy),
+        ('priors', learn_prior_strategy),
     ]
     # Cross-validation
     N_SPLITS = 9
@@ -439,8 +436,11 @@ def experiment():
         print(f'{name: >15} {won: >10.2f} {spent: >10.2f} {eff_ter: >10.2f}')
 
 def food_club():
-    np = NeoPage(path)
+    np = NeoPage()
     np.get(path, 'type=bet')
+    if np.contains('All betting gates are now closed!'):
+        print(f"Dangit, we're late.")
+        return
     maxbet = util.amt(re.search(r'You can only place up to <b>(.*?)</b> NeoPoints per bet', np.content)[1])
     print(f'Max bet is {maxbet}')
 
@@ -491,7 +491,17 @@ def food_club():
 
     print(f'Made {total_bet_amt} NP of bets. Expect to win {total_exp_win:.1f} NP. (TER {TER:.2f}; ROI {total_exp_win / total_bet_amt:.3f})')
 
+    np.get('/pirates/foodclub.phtml', 'type=collect')
+    if np.contains("<input type='submit' value='Collect Your Winnings!'>"):
+        tbl = np.search(r"<table border='0' .*?>(.*?)</table>")[1]
+        tuples = util.table_to_tuples(tbl)
+        earliest_rnd = int(tuples[2][0])
+        total_winnings = tuples[-1][-1]
+        print(f'Note: We have {total_winnings} winnings dating from round {earliest_rnd}.')
+        if cur_round - earliest_rnd >= 7:
+            print(f'Should collect winnings before they vanish!')
+
 if __name__ == '__main__':
-    experiment()
+    #experiment()
     #dl_fc_history(7095, 7099)
-    #food_club()
+    food_club()

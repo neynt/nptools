@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
 import heapq
 import re
 import time
@@ -84,8 +84,6 @@ dirs_to_unicode = {
     UP | LEFT | DOWN | RIGHT: '┼',
 }
 
-UNKNOWN_COST = 3
-
 path = '/games/maze/maze.phtml'
 
 def xs(l): return [x for x, y in l]
@@ -98,8 +96,10 @@ def fetch(verbose=False):
     np.get(path, 'deletegame=1')
 
     # Start new game.
+    UNKNOWN_COST = random.choice([1,2,3,4,5])
+
     diffs = re.findall(r'<A HREF="maze.phtml\?create=1&diff=(\d+)">', np.content)
-    diff = '5' if '5' in diffs else '3'
+    diff = '4' if '4' in diffs else '3'
     np.get(path, 'create=1', f'diff={diff}')
     maze_size = maze_sizes[diff]
 
@@ -128,6 +128,11 @@ def fetch(verbose=False):
             if np.contains('You have achieved a streak'):
                 streak, cumul = re.search(r'You have achieved a streak of <b>(.*?)</b> victories, for a running total of <b>(.*?)</b> points', np.content).group(1, 2)
                 print(f'Streak is {streak}, total score {cumul}')
+
+                # Don't get too high of a score!
+                if int(cumul) > 0:
+                    np.get(path, 'deletegame=1')
+                    np.get(path, 'create=1', 'diff=1')
             else:
                 streak = 1
                 cumul = prize
@@ -317,30 +322,5 @@ def fetch_forever():
     while True:
         fetch(verbose=True)
 
-def stats():
-    data = open('fetch.log').readlines()
-    data = [map(int, line.split(',')) for line in data]
-    diffs = [1,2,3,4,5]
-    prizes = [0, 101, 201, 501, 1501, 2501]
-    steps = [0, 65, 100, 175, 225, 250]
-
-    wins = {d: 0 for d in diffs}
-    plays = {d: 0 for d in diffs}
-    total_won = 0
-    for diff, uk_cost, won, prize, streak, cumul in data:
-        plays[diff] += 1
-        if won:
-            wins[diff] += 1
-        total_won += prize
-
-    for d in diffs:
-        w = wins[d]
-        p = plays[d]
-        win_rate = w / p
-        np_per_turn = prizes[d] / steps[d] * win_rate
-        print(f'Difficulty {d}: Won {w} / {p} times. Rate {win_rate:.3f}. {np_per_turn:.2f} NP per turn.')
-    print(f'Total won: {total_won}')
-
 if __name__ == '__main__':
-    #fetch_forever()
-    stats()
+    fetch_forever()

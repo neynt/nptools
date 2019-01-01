@@ -15,6 +15,12 @@ def next_day_at(**kwargs):
         return next_time.replace(**kwargs)
     return f
 
+def next_hour_at(**kwargs):
+    def f(last_time):
+        next_time = last_time + datetime.timedelta(hours=1)
+        return next_time.replace(**kwargs)
+    return f
+
 # Dailies with priority. Low-idx dailies are completed first.
 # Equal-idx dailies are completed in an arbitrary order.
 def daily(idx):
