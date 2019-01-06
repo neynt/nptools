@@ -182,14 +182,12 @@ def update_prices(item_name, laxness=5):
         print(f'Interrupted. Actual laxness is {laxness}')
 
     print_status()
-    level2_by_item = {}
 
     # Consolidate results for each item into a quote.
     if obj_info_ids:
         for obj_info_id in obj_info_ids:
             level2 = sorted(sum(g.markets[obj_info_id].values(), []))
             g.level2_cache[obj_info_id] = level2
-            level2_by_item[obj_info_id] = level2
 
             cur_amt = 0
             cur_price = 0
@@ -248,11 +246,10 @@ def update_prices(item_name, laxness=5):
         update_item(item_name, price=1000001, price_laxness=laxness)
 
     conn.commit()
-    return level2_by_item
 
 # Fetches the market for an item.
 # i.e. (price, stock, link) tuples, cheapest first
-def get_market(name, image=None):
+def get_market(name, image=None, laxness=5):
     c = conn.cursor()
     if image:
         c.execute('''
@@ -265,11 +262,8 @@ def get_market(name, image=None):
     ids = c.fetchall()
     result = {}
     for obj_info_id, in ids:
-        if obj_info_id not in g.level2_cache:
-            update_prices(name, laxness=5)
+        update_prices(name, laxness=laxness)
         result[obj_info_id] = g.level2_cache[obj_info_id]
-    if len(result) == 1:
-        result = list(result.values())[0]
     return result
 
 # Mostly Neohome Superstore items
@@ -391,7 +385,7 @@ def get_price(item_name, item_image=None, update=True, max_laxness=7, max_age=ti
 
         if not good:
             if not update: return None
-            market = update_prices(item_name, laxness=max_laxness)
+            update_prices(item_name, laxness=max_laxness)
             continue
 
         ret = {}

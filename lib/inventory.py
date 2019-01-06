@@ -2,9 +2,8 @@
 import re
 from collections import defaultdict
 
-from lib import NeoPage
+from lib import NeoPage, util, item_db
 from activities import bank_interest
-from . import item_db
 
 # Items will be deposited unless assigned a special role here.
 item_policy = defaultdict(lambda: 'deposit')
@@ -72,11 +71,39 @@ def withdraw_sdb(item):
     else:
         print(f'No {item} in SDB.')
 
-def purchase(item, image=None, budget=None, quantity=1):
-    # TODO
-    level2_by_item = item_db.update_prices(name, laxness=laxness)
-    to_spend = 0
-    for obj_info_id, level2 in level2_by_item.items():
-        for price, qty, url in level2:
-            pass
-    pass
+shop_item_re = re.compile(r'''<TD .*?><A href="(.*?)" .*?><img src="http://images.neopets.com/items/(.*?)" .*?></a>.*?<b>(.*?)</b><br>(.*?) in stock<br>Cost : (.*?) NP<br><br></td>''')
+
+def purchase(item, image=None, budget=None, quantity=1, **kwargs):
+    # Buys a quantity of items from user shops, sticking within a budget.
+    # Returns actual amount spent, or None if not successful.
+    market = next(iter(item_db.get_market(item, image, **kwargs).values()))
+
+    true_cost = 0
+    qty_left = quantity
+    buy_nps = []
+    for price, stock, link in market:
+        np2 = NeoPage()
+        np2.get(link)
+        buy_link, image, item, in_stock, cost = shop_item_re.search(np2.content).groups()
+        in_stock = util.amt(in_stock)
+        cost = util.amt(cost)
+        if cost <= price:
+            to_buy = min(in_stock, qty_left)
+            true_cost += cost * to_buy
+            qty_left -= to_buy
+            buy_nps.append((np2, buy_link, to_buy))
+            if qty_left <= 0:
+                break
+
+    if budget != None and true_cost > budget:
+        return None
+    
+    ensure_np(true_cost)
+    for np2, buy_link, to_buy in buy_nps:
+        referer = np2.referer
+        for _ in range(to_buy):
+            print(f'Buying {item} from {buy_link}')
+            np2.set_referer(referer)
+            np2.get(f'/{buy_link}')
+
+    return true_cost

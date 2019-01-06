@@ -8,7 +8,7 @@ Illicit automations for neopets.
 - Dailies, including difficult ones like Food Club (using max TER) and
   multi-dailies like underwater fishing
 - Plays certain games very well. e.g. Shapeshifter, Fetch, Tyranu Evavu
-- Restocks, stocks, and prices items automatically ($$$)
+- Restocks and prices items automatically ($$$)
 - Logs certain results (e.g. lab zaps)
 - Will probably get you frozen
 
@@ -77,5 +77,4 @@ shop_captchas/: images of captchas when buying items.
 - Island mystic (until avatar)
 - Quests
 - Mystery pic (really interesting scraping problem)
-- Qasalan Expellibox (chance of NC every 8 hours)
 - Scratchcard scratching

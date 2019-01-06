@@ -16,6 +16,21 @@ from lib import inventory
 #   - Obtains NP from bank if necessary
 # - Integrate with daemon (dynamic next times)
 
+def which_skill(Lvl, Str, Def, Mov, Hp):
+    # Which skill to train?
+    if Lvl <= 80 or Lvl > 250:
+        # Train all skills evenly
+        if any(stat > 2 * Lvl for stat in [Str, Def, Mov, Hp]):
+            # Train level if we must.
+            return 'Level'
+        else:
+            # Otherwise, train the lowest skill.
+            return min(zip([Str, Hp, Def, Mov], ('Strength', 'Endurance', 'Defence', 'Agility')), key=lambda x:x[0])[1]
+    else:
+        # Rush level, because training is faster at level 250
+        # (also, a red codestone is only worth about 5 tan codestones)
+        return 'Level'
+
 def base_academy(path, path_process):
     np = lib.NeoPage()
     np.get(path, 'type=status')
@@ -66,14 +81,10 @@ def base_academy(path, path_process):
         else:
             # Start a new course
             np.get(path, 'type=courses')
+
+            # Which skill to train?
             # TODO: Take advantage of island training school's endurance to 3x health feature.
-            skill = None
-            if any(stat > 2 * Lvl for stat in [Str, Def, Mov, Hp]):
-                # Train level if we must.
-                skill = 'Level'
-            else:
-                # Otherwise, train the lowest skill.
-                skill = min(zip([Str, Hp, Def, Mov], ('Strength', 'Endurance', 'Defence', 'Agility')), key=lambda x:x[0])[1]
+            skill = which_skill(Lvl, Str, Def, Mov, Hp)
             print(f'Training {skill} for {pet_name}')
             np.post(path_process, 'type=start', f'course_type={skill}', f'pet_name={pet_name}')
 
@@ -93,6 +104,7 @@ def island_training():
     return base_academy(path, path_process)
 
 if __name__ == '__main__':
+    # TODO: Detect level and pick appropriate school.
     #print(pirate_academy())
     island_training()
     #inventory.withdraw_sdb('Vo Codestone')

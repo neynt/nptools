@@ -46,6 +46,9 @@ class TTLCache:
     def __len__(self):
         return len(list(self.keys()))
 
+    def __contains__(self, key):
+        return self.get(key) != None
+
     __setitem__ = put
     __getitem__ = get
 

@@ -3,10 +3,10 @@ from lib import g
 import sys
 
 def get_market(name, laxness):
-    level2_by_item = item_db.update_prices(name, laxness=laxness)
-    for obj_info_id, level2 in level2_by_item.items():
+    market = item_db.get_market(name, laxness=laxness)
+    for obj_info_id, level2 in market.items():
         print(f'obj_info_id {obj_info_id}')
-        for price, qty, url in level2:
+        for price, qty, url in level2[:20]:
             print(f'{qty}@{price}: http://www.neopets.com{url}')
 
 if __name__ == '__main__':
