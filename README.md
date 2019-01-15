@@ -2,6 +2,8 @@
 
 Illicit automations for neopets.
 
+**Note: I finally got frozen after autobuying 24/7 for about a month, so I won't be developing this anymore. Use at your own risk.**
+
 ## Features
 
 - Daemon that you can just configure, run, and forget about
