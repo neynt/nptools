@@ -178,8 +178,7 @@ tasks = [
     #('shapeshifter', shapeshifter_daily, daily(2)),
     #('kacheek_seek', kacheek_seek, daily(2)),
     #('pyramids', pyramids, neotime.immediate),
-    #('faerieland_jobs_1', lambda: faerieland_jobs(3), daily(2)),
-    # TODO: Do 2 more jobs after first 3.
+    ('faerieland_jobs_1', lambda: faerieland_jobs(3), daily(2)),
 
     # Multi-dailies
     ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),

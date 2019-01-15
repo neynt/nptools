@@ -76,5 +76,13 @@ shop_captchas/: images of captchas when buying items.
 - Symol Hole
 - Island mystic (until avatar)
 - Quests
-- Mystery pic (really interesting scraping problem)
+  - Illusen
+  - Jhudora
+  - Kitchen
+  - Edna
+  - Brain Tree
+  - Esophagor
+  - Taelia
+  - Coincidence
+- Mystery pic (really interesting scraping, vision problem)
 - Scratchcard scratching

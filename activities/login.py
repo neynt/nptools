@@ -1,6 +1,9 @@
-import sys
 import lib
+import os
+import sys
 
 if __name__ == '__main__':
     np = lib.NeoPage('/')
-    np.login(sys.argv[1], sys.argv[2])
+    user = os.environ['NP_USER']
+    pswd = os.environ['NP_PASS']
+    np.login(user, pswd)

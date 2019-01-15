@@ -107,3 +107,13 @@ def purchase(item, image=None, budget=None, quantity=1, **kwargs):
             np2.get(f'/{buy_link}')
 
     return true_cost
+
+def acquire(item, image=None, **kwargs):
+    # TODO
+    # Attempts to put an item in the inventory, trying, in order:
+    # - Player's inventory (already have it?)
+    # - Player's SDB
+    # - Player's gallery
+    # - Player's shop
+    # - Other player shops
+    raise Exception('unimplemented')

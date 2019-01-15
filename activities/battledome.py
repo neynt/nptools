@@ -23,7 +23,7 @@ path_arena_ajax = '/dome/ajax/arena.php'
 #npc_id = 206 # S750 Kreludan Defender Robot
 npc_id = 26  # Koi Warrior
 
-toughness = 1
+toughness = 3
 
 def battledome(forever = False):
     np = NeoPage(path)

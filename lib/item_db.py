@@ -250,6 +250,7 @@ def update_prices(item_name, laxness=5):
 # Fetches the market for an item.
 # i.e. (price, stock, link) tuples, cheapest first
 def get_market(name, image=None, laxness=5):
+    update_prices(name, laxness=laxness)
     c = conn.cursor()
     if image:
         c.execute('''
@@ -262,7 +263,6 @@ def get_market(name, image=None, laxness=5):
     ids = c.fetchall()
     result = {}
     for obj_info_id, in ids:
-        update_prices(name, laxness=laxness)
         result[obj_info_id] = g.level2_cache[obj_info_id]
     return result
 
