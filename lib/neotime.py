@@ -6,7 +6,7 @@ import random
 def now_nst():
     t = datetime.datetime.utcnow()
     # TODO: Daylight savings time
-    t -= datetime.timedelta(hours=8)
+    t -= datetime.timedelta(hours=7)
     return t
 
 def next_day_at(**kwargs):

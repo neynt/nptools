@@ -46,33 +46,38 @@ def stock_market():
     # TODO: Battledome perk that reduces min price to 10
     for price in range(15, 18):
         if price in stocks_by_price:
+            to_buy = stocks_by_price[price]
+            to_buy_by_owned = sorted(to_buy, key=lambda x:owned_stocks[x])
+
+            # Buys 1000 of the stock you have the least of.
+            stonk = to_buy_by_owned[0]
+            to_buy_amt = { stonk: 1000 }
+
             # Buys an amount of stock that tries to equalize your holdings in
             # each stock. For example, if BUZZ and FISH are the stocks trading
             # at 15 and you currently own 1500 BUZZ and 2000 FISH, we will buy
             # 750 BUZZ and 250 FISH to put them both at 2250.
-            # TODO: This was cool to figure out but simply buying 1000 of the
-            # stock you have the least of would result in roughly the same
-            # thing in the long run. Maybe we should just do that.
-            to_buy = stocks_by_price[price]
-            to_buy_by_owned = sorted(to_buy, key=lambda x:owned_stocks[x])
-            to_buy_amt = {x:0 for x in to_buy}
-            stocks_seen = []
-            rem = 1000
+            # This was cool to figure out but simply buying 1000 of the stock
+            # you have the least of results in roughly the same thing in the
+            # long run.
+            #to_buy_amt = {x:0 for x in to_buy}
+            #stocks_seen = []
+            #rem = 1000
 
-            for sym1, sym2 in zip(to_buy_by_owned, to_buy_by_owned[1:]):
-                stocks_seen.append(sym1)
-                max_quant = owned_stocks[sym2] - owned_stocks[sym1]
-                for i,sym in enumerate(stocks_seen):
-                    quant = rem // (len(stocks_seen) - i)
-                    quant = min(quant, max_quant)
-                    rem -= quant
-                    to_buy_amt[sym] += quant
-            stocks_seen.append(to_buy_by_owned[-1])
+            #for sym1, sym2 in zip(to_buy_by_owned, to_buy_by_owned[1:]):
+            #    stocks_seen.append(sym1)
+            #    max_quant = owned_stocks[sym2] - owned_stocks[sym1]
+            #    for i,sym in enumerate(stocks_seen):
+            #        quant = rem // (len(stocks_seen) - i)
+            #        quant = min(quant, max_quant)
+            #        rem -= quant
+            #        to_buy_amt[sym] += quant
+            #stocks_seen.append(to_buy_by_owned[-1])
 
-            for i,sym in enumerate(stocks_seen):
-                quant = rem // (len(stocks_seen) - i)
-                rem -= quant
-                to_buy_amt[sym] += quant
+            #for i,sym in enumerate(stocks_seen):
+            #    quant = rem // (len(stocks_seen) - i)
+            #    rem -= quant
+            #    to_buy_amt[sym] += quant
 
             print(f'Stock Market: Will buy {to_buy_amt} @{price}.')
             inventory.ensure_np(price * 1000)

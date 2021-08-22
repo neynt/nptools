@@ -17,6 +17,8 @@ UNBUYABLE_PRICE = 1000001
 class ShopWizardBannedException(Exception):
     pass
 
+should_update_schema = not os.path.exists(ITEM_DB_FILE)
+
 def make_conn():
     return sqlite3.connect(ITEM_DB_FILE, detect_types=sqlite3.PARSE_DECLTYPES)
 
@@ -62,9 +64,13 @@ def update_schema():
     ''')
     conn.commit()
 
+if should_update_schema:
+    print('Newly created database; updating schema')
+    update_schema()
+
 def query(q, *args):
     c = conn.cursor()
-    result = c.execute(q, args)
+    _result = c.execute(q, args)
     conn.commit()
     return c
 
@@ -113,7 +119,7 @@ def update_item(name, image=None, desc=None, obj_info_id=None, price=None, price
 # buy something.
 def update_prices(item_name, laxness=5):
     now = datetime.now()
-    if g.last_ban and (now - last_ban < timedelta(minutes=1) or (now - last_ban < timedelta(hours=1) and now.hour == last_ban.hour)):
+    if g.last_ban and (now - g.last_ban < timedelta(minutes=1) or (now - g.last_ban < timedelta(hours=1) and now.hour == g.last_ban.hour)):
         print('Still wiz banned.')
         raise ShopWizardBannedException
 
@@ -148,7 +154,7 @@ def update_prices(item_name, laxness=5):
             np.post('/market.phtml', *opts)
             if np.contains('Whoa there, too many'):
                 print('Shop wizard banned.')
-                last_ban = datetime.now()
+                g.last_ban = datetime.now()
                 raise ShopWizardBannedException
 
             search_count += 1
@@ -162,7 +168,7 @@ def update_prices(item_name, laxness=5):
             rows = lib.table_to_tuples(tbl, raw=True)[1:]
             market_data = []
             obj_info_id = None
-            for owner, item, stock, price in rows:
+            for owner, _item, stock, price in rows:
                 result = re.search(r'<a href="(.*?)"><b>(.*?)</b></a>', owner)
                 link = result[1]
                 owner = result[2]
@@ -367,7 +373,7 @@ def get_price(item_name, item_image=None, update=True, max_laxness=7, max_age=ti
         WHERE name = ?
         ''', (item_name,))
         results = c.fetchall()
-    for attempt_ in range(2):
+    for _ in range(2):
         get_results()
         results = c.fetchall()
         if len(results) > 1:

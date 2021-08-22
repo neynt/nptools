@@ -37,7 +37,7 @@ def faerieland_jobs(jobs_to_do):
                 if profit < MIN_PROFIT:
                     continue
                 print('Taking the job!')
-                
+
                 true_cost = inventory.purchase(name, image=image, budget=revenue - MIN_PROFIT, quantity=count)
                 if not true_cost:
                     print(f'Failed to acquire all the items within budget')

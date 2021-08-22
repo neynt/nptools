@@ -14,11 +14,12 @@ def list_items():
     items = np.findall(r'\n<td class=.*?>.*?</td>')
     for item in items:
         attr = re.search(r'<td class="(.*?)"><a href="javascript:;" onclick="openwin\((\d+)\);"><img src="http://images.neopets.com/items/(.*?)" width="80" height="80" title="(.*?)" alt="(.*?)" border="0" class="(.*?)"></a><br>(.*?)(<hr noshade size="1" color="#DEDEDE"><span class="attr medText">(.*?)</span>)?</td>', item, flags=re.DOTALL)
-        item_id = attr[2]
-        item_image = attr[3]
-        item_desc = attr[4]
-        item_name = attr[7]
-        item_db.update_item(item_name, image=item_image, desc=item_desc)
+        if attr:
+            _item_id = attr[2]
+            item_image = attr[3]
+            item_desc = attr[4]
+            item_name = attr[7]
+            item_db.update_item(item_name, image=item_image, desc=item_desc)
 
 def always_keep(item):
     item_policy[item] = None
@@ -97,7 +98,7 @@ def purchase(item, image=None, budget=None, quantity=1, **kwargs):
 
     if budget != None and true_cost > budget:
         return None
-    
+
     ensure_np(true_cost)
     for np2, buy_link, to_buy in buy_nps:
         referer = np2.referer

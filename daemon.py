@@ -70,35 +70,38 @@ def appraise_items():
             item = random.choice(items)
             print(f'Appraising {item} ({len(items)} items left)')
             try:
-                item_db.update_prices(item, laxness=4)
+                #item_db.update_prices(item, laxness=4)
+                item_db.update_prices(item, laxness=10)
             except item_db.ShopWizardBannedException:
                 return
         else:
             return
 
-# SS2: 13 (pharmacy), 41 (furniture), 108 (mystical surroundings)
 restock_shops = [
     1, # Food
     2, # Magic
     3, # Toys
-    (4, 15000), # Uni's clothing
-    5, # Grooming parlour
+    #(4, 15000), # Uni's clothing
+    #5, # Grooming parlour
     7, # Magical books
     8, # Collectable cards
     9, # Neopian petpets
     10, # Defense magic
+    13, # Pharmacy
     14, # Chocolate factory
     15, # Bakery
-    16, # Health foods
-    30, # Spooky food
-    37, # Super Happy Icy Fun Snow Shop
-    38, # Faerie books
-    51, # Sutek's scrolls
-    58, # Post office
-    68, # Collectable coins
-    70, # Booktastic books
-    86, # Sea shells
-    98, # Plushie palace
+    #16, # Health foods
+    #30, # Spooky food
+    #37, # Super Happy Icy Fun Snow Shop
+    #38, # Faerie books
+    #41, # Furniture
+    #51, # Sutek's scrolls
+    #58, # Post office
+    #68, # Collectable coins
+    #70, # Booktastic books
+    #86, # Sea shells
+    #98, # Plushie palace
+    #108, # Mystical Surroundings
 ]
 
 def next_restocks_f():
@@ -124,7 +127,8 @@ def my_restock():
         times.append(res or neotime.now_nst())
         time.sleep(0.5)
     result = max(times)
-    result += datetime.timedelta(seconds=random.randint(30, 90))
+    #result += datetime.timedelta(seconds=random.randint(30, 90))
+    result += datetime.timedelta(seconds=random.randint(300, 900))
 
     # Soft backoff
     if g.consec_empty_shops >= 40:
@@ -151,12 +155,15 @@ tasks = [
     # Dailies
     ('anchor_management', anchor_management, daily(1)),
     ('apple_bobbing', apple_bobbing, daily(1)),
+    # Require opening a bank account
     ('bank_interest', bank_interest, daily(0)),
-    ('council_chamber', council_chamber, daily(1)),
+    # Requires complete altador plot
+    #('council_chamber', council_chamber, daily(1)),
     ('deserted_tomb', deserted_tomb, daily(1)),
     ('faerie_caverns', faerie_caverns, daily(1)),
     ('forgotten_shore', forgotten_shore, daily(1)),
     ('fruit_machine', fruit_machine, daily(1)),
+    # Requires 24h old verified account
     ('grumpy_king', grumpy_king, neotime.skip_lunch(daily(1))),
     ('jelly', jelly, daily(1)),
     ('kiko_pop', kiko_pop, daily(1)),
@@ -168,20 +175,25 @@ tasks = [
     ('tombola', tombola, daily(1)),
     ('coconut_shy', coconut_shy, daily(1)),
     ('trudys_surprise', trudys_surprise, daily(1)),
-    ('lab_ray', lab_ray, daily(1)),
+    # Requires completed lab map
+    #('lab_ray', lab_ray, daily(1)),
     ('lottery', lottery, daily(1)),
     ('wise_king', wise_king, neotime.skip_lunch(daily(1))),
-    ('food_club', food_club, neotime.next_day_at(hour=12, minute=0, second=0)),
+    # neofoodclub.fr is broken; do our own scraping.
+    #('food_club', food_club, neotime.next_day_at(hour=12, minute=0, second=0)),
 
     # Longer-running dailies that we do after normal dailies
-    ('battledome', battledome, daily(2)),
-    #('shapeshifter', shapeshifter_daily, daily(2)),
-    #('kacheek_seek', kacheek_seek, daily(2)),
-    #('pyramids', pyramids, neotime.immediate),
+    # Requires a strong pet.
+    #('battledome', battledome, daily(2)),
+    ('shapeshifter', shapeshifter_daily, daily(2)),
+    ('kacheek_seek', kacheek_seek, daily(2)),
+    ('pyramids', pyramids, neotime.after(minutes=30)),
     ('faerieland_jobs_1', lambda: faerieland_jobs(3), daily(2)),
+    ('fetch', lambda: fetch(verbose=False) and None or None, neotime.after(minutes=50)),
 
     # Multi-dailies
-    ('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
+    # This is the halloween scratchcard, the only one worth buying.
+    #('buy_scratchcard', buy_scratchcard, neotime.after(hours=2, minutes=1)),
     #('buy_scratchcard', buy_scratchcard, neotime.after(hours=1, minutes=1)), # For boon
     ('fishing', fishing, neotime.after(hours=2)),
     ('healing_springs', healing_springs, neotime.after(minutes=95)),
@@ -191,18 +203,18 @@ tasks = [
 
     # Housekeeping
     #('plushie_tycoon', plushie_tycoon, neotime.after(minutes=15)),
-    ('appraise_items', appraise_items, neotime.next_hour_at(minute=50, second=0)),
+    ('appraise_items', appraise_items, neotime.next_hour_at(minute=10, second=0)),
+    # TODO: should buy required training item if you don't have it
     #('pirate_academy', training.pirate_academy, neotime.immediate),
-    ('island_training', training.island_training, neotime.immediate),
+    #('island_training', training.island_training, neotime.immediate),
     ('clean inventory', clean_inventory, neotime.next_hour_at(minute=30, second=0)),
 
-    # ooh oooh ooh oooo you gotta get cho money
+    # Make a billion neopoints
     ('clean_shop_till', clean_shop_till, daily(1)),
     ('restock', my_restock, neotime.immediate),
     # TODO: shop wizard ban detect and retry
     ('set_shop_prices', set_shop_prices, neotime.next_hour_at(minute=40, second=0)),
-    #('fetch', lambda: fetch(verbose=False) and None or None, neotime.after(minutes=5)),
-    
+
     # Other
     #('magma_pool', magma_pool, neotime.after(minutes=4)),
 

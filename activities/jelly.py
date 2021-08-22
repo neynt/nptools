@@ -3,7 +3,7 @@ import lib
 
 def jelly():
     path = '/jelly/jelly.phtml'
-    np = lib.NeoPage(path)
+    np = lib.NeoPage(path, save_pages=True)
     np.post(path, type='get_jelly')
     if np.contains('You take some'):
         prize = np.search(r'You take some <b>(.*?)</b>')[1]

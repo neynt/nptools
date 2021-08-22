@@ -74,7 +74,9 @@ RESTOCK_LOG_FILE = 'restock.log'
 
 def restock(shop_id, min_profit=3000):
     log_file = open(RESTOCK_LOG_FILE, 'a')
-    inventory.ensure_np(99999)
+    print(f'restocking shop {shop_id}')
+    # TODO: change back to 99999 when you're rich
+    inventory.ensure_np(5000)
     np = lib.NeoPage()
     np.get('/objects.phtml', f'obj_type={shop_id}', 'type=shop')
     items = re_shop_item.findall(np.content)

@@ -89,7 +89,7 @@ def pyramids():
             np.get('/games/pyramids/' + links[best_card])
         else:
             np.get('/games/pyramids/pyramids.phtml?action=draw')
-        time.sleep(min(random.expovariate(1/0.4), 2.0))
+        time.sleep(min(random.expovariate(1/1.0), 2.0))
 
 if __name__ == '__main__':
     while True:

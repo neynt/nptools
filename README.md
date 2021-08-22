@@ -16,21 +16,32 @@ Illicit automations for neopets.
 
 ## Quick start
 
+Create a virtualenv and install requirements:
+
+```shell
+python -m venv venv
+pip install -r requirements.txt
+```
+
 Put
 
 ```
 NP_USER='username'
 NP_PASS='password'
-PET_NAME='xX_bestpet_Xx'
+PET_NAME='name_of_your_pet'
 ```
 
-in a file called .env in this directory. Then run `./run_daemon.sh`.
+in a file called .env in this directory.
 
-Additional flags include `USER_AGENT` and `FIREFOX_COOKIES_DB`.
+Build the kvho shapeshifter solver with `cd c && ./build.sh`.
 
-A lot of this code was written with assumptions that only hold true on my
-account. So run it at your own risk and maybe start the daemon with only a few
-safe dailies enabled first. (Comment out most of the tasks in daemon.py)
+Then run `./run_daemon.sh`.
+
+Additional env vars include `USER_AGENT` and `FIREFOX_COOKIES_DB`.
+
+Best efforts were made to only have safe tasks are enabled in daemon.py; these
+are the ones that can run on a brand new account. Look through the file and see
+what you can safely uncomment.
 
 ## Produced files
 

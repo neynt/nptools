@@ -4,6 +4,7 @@ import subprocess
 from datetime import datetime
 import time
 import os
+import sys
 
 from lib import NeoPage
 
@@ -82,13 +83,18 @@ def shapeshifter(timeout=10*60):
 
     positions = []
     try:
-        proc = subprocess.run(['c/ss'], input=kvho_input, encoding='utf-8', capture_output=True, timeout=timeout)
+        proc = subprocess.run(['c/ss'], input=kvho_input, encoding='utf-8', stdout=subprocess.PIPE, timeout=timeout)
         for line in proc.stdout.splitlines():
             if 'x' in line and '=' in line:
                 x = list(map(int, line.replace('x', ' ').replace('=', ' ').strip().split()))
                 for c, r, _ in zip(x[::3], x[1::3], x[2::3]):
                     positions.append((r, c))
-        print(f'Solution found in {datetime.now() - start_time}: {positions}')
+        if len(positions) == num_flips:
+            print(f'Solution found in {datetime.now() - start_time}: {positions}')
+            sys.exit(1)
+        else:
+            positions.clear()
+            raise subprocess.TimeoutExpired('c/ss', 0.0)
     except subprocess.TimeoutExpired:
         print(f'Solution not found in time. Throwing this puzzle to get a new one.')
         for _ in shape_grids:
@@ -144,9 +150,13 @@ def goto_level(lvl):
     print(np.last_file_path)
 
 def shapeshifter_daily():
-    goto_level(94)
-    while shapeshifter(timeout=5) != 2:
-        pass
+    goto_level(1)
+    timeout = 60
+    while True:
+        print(f'timeout: {timeout}')
+        result = shapeshifter(timeout=timeout)
+        if result == 2:
+            break
 
 if __name__ == '__main__':
     #shapeshifter_one()
